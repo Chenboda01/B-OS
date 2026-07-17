@@ -1,0 +1,11 @@
+{
+  "name": "B-OS Desktop",
+  "short_name": "B-OS",
+  "description": "Browser-based custom desktop operating system",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#050510",
+  "theme_color": "#00f0ff",
+  "orientation": "landscape",
+  "icons": []
+}

@@ -3,6 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#050510">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="B-OS">
+<link rel="manifest" href="manifest.json">
 <title>B-OS Desktop</title>
 <style>
 /* ═══════════════════════════════════════════════════════
@@ -34,6 +39,7 @@
   --text-bright: #e8eaff;
   --text-mid:    #9999cc;
   --text-dim:    #555580;
+  --text-base:   13px;
 
   /* Spacing (4px grid) */
   --sp-1: 4px;   --sp-2: 8px;   --sp-3: 12px;
@@ -71,6 +77,7 @@ html, body {
   height: 100vh;
   overflow: hidden;
   font-family: var(--font-mono);
+  font-size: var(--text-base);
   background: var(--void);
   color: var(--text-bright);
   -webkit-font-smoothing: antialiased;
@@ -626,8 +633,8 @@ html, body {
 .win-body {
   flex: 1;
   overflow: auto;
-  min-height: 0;
   position: relative;
+  font-size: var(--text-base);
 }
 
 .win-body::-webkit-scrollbar {
@@ -1589,11 +1596,77 @@ html, body {
         document.getElementById('taskbar').classList.add('visible');
         document.getElementById('exitButton').classList.add('visible');
         initParticles();
+        restoreSettings();
+        requestFullscreen();
       }, 500);
     }
   }
 
   setTimeout(typeBootLine, 200);
+
+  function applyTheme(theme) {
+    var root = document.documentElement;
+    if (theme === 'magenta') {
+      root.style.setProperty('--cyan', '#ff00ff');
+      root.style.setProperty('--magenta', '#ff00ff');
+    } else if (theme === 'green') {
+      root.style.setProperty('--cyan', '#00ff88');
+      root.style.setProperty('--magenta', '#00ff88');
+    } else {
+      root.style.setProperty('--cyan', '#00f0ff');
+      root.style.setProperty('--magenta', '#ff00ff');
+    }
+  }
+
+  function applyWallpaper(wp) {
+    var canvas = document.getElementById('particleCanvas');
+    var grid = document.getElementById('desktopGrid');
+    var noise = document.getElementById('desktopNoise');
+    var orb = document.getElementById('desktopOrb');
+    if (wp === 'grid') {
+      if (canvas) canvas.style.display = 'none';
+      if (grid) grid.style.display = '';
+      if (noise) noise.style.display = 'none';
+      if (orb) orb.style.display = 'none';
+    } else if (wp === 'none') {
+      if (canvas) canvas.style.display = 'none';
+      if (grid) grid.style.display = 'none';
+      if (noise) noise.style.display = 'none';
+      if (orb) orb.style.display = 'none';
+    } else {
+      if (canvas) canvas.style.display = '';
+      if (grid) grid.style.display = '';
+      if (noise) noise.style.display = '';
+      if (orb) orb.style.display = '';
+    }
+  }
+  window.applyWallpaper = applyWallpaper;
+  window.applyTheme = applyTheme;
+
+  function restoreSettings() {
+    try {
+      var raw = localStorage.getItem('bos-settings');
+      if (!raw) return;
+      var s = JSON.parse(raw);
+      if (s.theme) applyTheme(s.theme);
+      if (s.wallpaper) applyWallpaper(s.wallpaper);
+      if (s.fontSize) document.documentElement.style.setProperty('--text-base', s.fontSize + 'px');
+    } catch(e) {}
+  }
+
+  function requestFullscreen() {
+    var el = document.documentElement;
+    if (el.requestFullscreen) {
+      el.requestFullscreen().catch(function(){});
+    } else if (el.webkitRequestFullscreen) {
+      el.webkitRequestFullscreen();
+    }
+    document.addEventListener('click', function fsClick() {
+      document.removeEventListener('click', fsClick);
+      if (el.requestFullscreen) el.requestFullscreen().catch(function(){});
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    }, { once: true });
+  }
 
   /* ─────────────────────────────────────────────────
      PARTICLE CANVAS

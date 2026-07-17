@@ -215,8 +215,8 @@
 
     if (cmd0 === 'exit') {
       var closeBtn = outputEl.closest('.bos-window');
-      if (closeBtn && closeBtn.querySelector('.bos-window-close')) {
-        closeBtn.querySelector('.bos-window-close').click();
+      if (closeBtn && closeBtn.querySelector('.win-close')) {
+        closeBtn.querySelector('.win-close').click();
       }
       return;
     }
@@ -256,10 +256,21 @@
       if (cmd0 === 'cd') {
         appendOutput(outputEl, '', '#9999cc');
         scrollBottom(outputEl);
-      if (args.length === 0 || args[0] === '~') {
+        if (args.length === 0 || args[0] === '~') {
           currentDir = '~';
         } else {
-          currentDir = args[0].startsWith('/') ? args[0] : currentDir + '/' + args[0];
+          var newPath = args[0];
+          if (!newPath.startsWith('/') && newPath !== '~') {
+            newPath = (currentDir === '~' ? '/home' : currentDir) + '/' + newPath;
+          }
+          var parts = newPath.split('/').filter(function(p) { return p && p !== '.'; });
+          var resolved = [];
+          for (var i = 0; i < parts.length; i++) {
+            if (parts[i] === '..') { resolved.pop(); }
+            else { resolved.push(parts[i]); }
+          }
+          currentDir = '/' + resolved.join('/');
+          if (currentDir === '/home') currentDir = '~';
         }
         var promptSpan = outputEl.closest('.bos-app').querySelector('div:last-child span');
         if (promptSpan) {
@@ -522,11 +533,13 @@
     }
   }
 
-  function navigate(path, win) {
+  function navigate(path, win, skipHistory) {
+    if (!skipHistory) {
+      pathHistory = pathHistory.slice(0, historyIndex + 1);
+      pathHistory.push(path);
+      historyIndex = pathHistory.length - 1;
+    }
     currentPath = path;
-    pathHistory = pathHistory.slice(0, historyIndex + 1);
-    pathHistory.push(path);
-    historyIndex = pathHistory.length - 1;
 
     var addressInput = win.querySelector('#fm-address');
     var breadcrumbEl = win.querySelector('#fm-breadcrumb');
@@ -598,18 +611,7 @@
     win.querySelector('#fm-back').addEventListener('click', function() {
       if (historyIndex > 0) {
         historyIndex--;
-        currentPath = pathHistory[historyIndex];
-        var addressInput = win.querySelector('#fm-address');
-        var breadcrumbEl = win.querySelector('#fm-breadcrumb');
-        var fileListEl = win.querySelector('#fm-filelist');
-        var statusEl = win.querySelector('#fm-status');
-        if (addressInput) addressInput.value = currentPath;
-        renderBreadcrumb(breadcrumbEl, currentPath);
-        fileListEl.innerHTML = '<div style="padding:24px;text-align:center;color:#555580;">Loading...</div>';
-        API.listFiles(currentPath).then(function(data) {
-          if (data.error) { fileListEl.innerHTML = '<div style="padding:24px;text-align:center;color:#ff3355;">' + esc(data.error) + '</div>'; return; }
-          renderFileList(fileListEl, data.entries || [], statusEl);
-        }).catch(function() { fileListEl.innerHTML = '<div style="padding:24px;text-align:center;color:#ff3355;">Backend offline</div>'; });
+        navigate(pathHistory[historyIndex], win, true);
       }
     });
 
@@ -877,6 +879,17 @@
 // APP 4 — BROWSER
 // ═══════════════════════════════════════════════════════════════
 (function() {
+  var urlHistory = [];
+  var historyPos = -1;
+
+  function pushURL(url) {
+    if (urlHistory[historyPos] !== url) {
+      urlHistory = urlHistory.slice(0, historyPos + 1);
+      urlHistory.push(url);
+      historyPos = urlHistory.length - 1;
+    }
+  }
+
   function esc(s) {
     return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
@@ -925,6 +938,7 @@
     if (loading) loading.style.height = '2px';
     if (frame) {
       frame.src = url;
+      pushURL(url);
       frame.onload = function() {
         if (loading) {
           setTimeout(function() { loading.style.height = '0'; }, 600);
@@ -949,13 +963,33 @@
     });
 
     win.querySelector('#br-back').addEventListener('click', function() {
-      var frame = win.querySelector('#br-frame');
-      try { frame.contentWindow.history.back(); } catch(e) {}
+      if (historyPos > 0) {
+        historyPos--;
+        var url = urlHistory[historyPos];
+        var frame = win.querySelector('#br-frame');
+        var input = win.querySelector('#br-url');
+        if (input) input.value = url;
+        if (loading) loading.style.height = '2px';
+        if (frame) {
+          frame.src = url;
+          frame.onload = function() { setTimeout(function() { if (loading) loading.style.height = '0'; }, 600); };
+        }
+      }
     });
 
     win.querySelector('#br-fwd').addEventListener('click', function() {
-      var frame = win.querySelector('#br-frame');
-      try { frame.contentWindow.history.forward(); } catch(e) {}
+      if (historyPos < urlHistory.length - 1) {
+        historyPos++;
+        var url = urlHistory[historyPos];
+        var frame = win.querySelector('#br-frame');
+        var input = win.querySelector('#br-url');
+        if (input) input.value = url;
+        if (loading) loading.style.height = '2px';
+        if (frame) {
+          frame.src = url;
+          frame.onload = function() { setTimeout(function() { if (loading) loading.style.height = '0'; }, 600); };
+        }
+      }
     });
 
     win.querySelector('#br-refresh').addEventListener('click', function() {
@@ -1095,9 +1129,7 @@
   }
 
   function buildSystemPanel() {
-    var panel = document.createElement('div');
-    panel.id = 'panel-system';
-    panel.innerHTML =
+    return '<div id="panel-system">' +
       '<div style="color:#e8eaff;font-size:14px;font-weight:bold;margin-bottom:16px;">System</div>' +
       '<div id="set-health" style="margin-bottom:16px;padding:12px;border:1px solid #181848;border-radius:4px;background:#0a0a1a;">' +
         '<div style="color:#555580;margin-bottom:8px;">Checking backend status...</div>' +
@@ -1108,36 +1140,36 @@
           'style="width:100%;background:#050510;border:1px solid #181848;color:#00f0ff;padding:8px 12px;border-radius:2px;font-family:var(--font-mono,monospace);font-size:12px;outline:none;" />' +
       '</div>' +
       '<div style="color:#555580;font-size:11px;">Platform: ' + navigator.platform + '</div>' +
-      '<div style="color:#555580;font-size:11px;">User Agent: ' + navigator.userAgent.substring(0, 80) + '...</div>';
+      '<div style="color:#555580;font-size:11px;">User Agent: ' + navigator.userAgent.substring(0, 80) + '...</div>' +
+    '</div>';
+  }
 
-    setTimeout(function() {
-      API.health().then(function(data) {
-        var el = panel.querySelector('#set-health');
-        if (!el) return;
-        if (data.status === 'ok') {
-          el.innerHTML =
-            '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
-              '<div style="width:8px;height:8px;border-radius:50%;background:#00ff88;box-shadow:0 0 8px #00ff88;"></div>' +
-              '<span style="color:#00ff88;font-size:12px;font-weight:bold;">Backend Online</span>' +
-            '</div>' +
-            (data.hostname ? '<div style="color:#9999cc;font-size:11px;">Host: ' + esc(String(data.hostname)) + '</div>' : '') +
-            (data.platform ? '<div style="color:#9999cc;font-size:11px;">Platform: ' + esc(String(data.platform)) + '</div>' : '') +
-            (data.python_version ? '<div style="color:#9999cc;font-size:11px;">Python: ' + esc(String(data.python_version)) + '</div>' : '');
-        } else {
-          el.innerHTML = '<div style="display:flex;align-items:center;gap:8px;">' +
-            '<div style="width:8px;height:8px;border-radius:50%;background:#ff3355;box-shadow:0 0 8px #ff3355;"></div>' +
-            '<span style="color:#ff3355;font-size:12px;">Backend Offline</span></div>' +
-            '<div style="color:#555580;font-size:11px;margin-top:4px;">Start with: python server/main.py</div>';
-        }
-      }).catch(function() {
-        var el = panel.querySelector('#set-health');
-        if (el) el.innerHTML = '<div style="display:flex;align-items:center;gap:8px;">' +
+  function checkSystemHealth(win) {
+    var el = win.querySelector('#set-health');
+    if (!el) return;
+    API.health().then(function(data) {
+      if (!win.querySelector('#set-health')) return;
+      var target = win.querySelector('#set-health');
+      if (data.status === 'ok') {
+        target.innerHTML =
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
+            '<div style="width:8px;height:8px;border-radius:50%;background:#00ff88;box-shadow:0 0 8px #00ff88;"></div>' +
+            '<span style="color:#00ff88;font-size:12px;font-weight:bold;">Backend Online</span>' +
+          '</div>' +
+          (data.hostname ? '<div style="color:#9999cc;font-size:11px;">Host: ' + esc(String(data.hostname)) + '</div>' : '') +
+          (data.os ? '<div style="color:#9999cc;font-size:11px;">Platform: ' + esc(String(data.os)) + '</div>' : '');
+      } else {
+        target.innerHTML = '<div style="display:flex;align-items:center;gap:8px;">' +
           '<div style="width:8px;height:8px;border-radius:50%;background:#ff3355;box-shadow:0 0 8px #ff3355;"></div>' +
-          '<span style="color:#ff3355;font-size:12px;">Backend Offline</span></div>';
-      });
-    }, 100);
-
-    return panel.outerHTML;
+          '<span style="color:#ff3355;font-size:12px;">Backend Offline</span></div>' +
+          '<div style="color:#555580;font-size:11px;margin-top:4px;">Start with: python server/main.py</div>';
+      }
+    }).catch(function() {
+      var target = win.querySelector('#set-health');
+      if (target) target.innerHTML = '<div style="display:flex;align-items:center;gap:8px;">' +
+        '<div style="width:8px;height:8px;border-radius:50%;background:#ff3355;box-shadow:0 0 8px #ff3355;"></div>' +
+        '<span style="color:#ff3355;font-size:12px;">Backend Offline</span></div>';
+    });
   }
 
   function buildAIPanel() {
@@ -1204,11 +1236,10 @@
           t.style.background = t.dataset.tab === tabName ? 'rgba(0,240,255,0.05)' : 'transparent';
           t.style.borderLeftColor = t.dataset.tab === tabName ? '#00f0ff' : 'transparent';
         });
-        if (tabName === 'appearance') contentEl.innerHTML = buildAppearancePanel(settings);
-        else if (tabName === 'system') contentEl.innerHTML = buildSystemPanel();
+        if (tabName === 'appearance') { contentEl.innerHTML = buildAppearancePanel(settings); bindAppearanceEvents(win, contentEl, settings); }
+        else if (tabName === 'system') { contentEl.innerHTML = buildSystemPanel(); checkSystemHealth(win); bindSystemEvents(win, contentEl, settings); }
         else if (tabName === 'ai') contentEl.innerHTML = buildAIPanel();
         else if (tabName === 'about') contentEl.innerHTML = buildAboutPanel();
-        if (tabName === 'appearance') bindAppearanceEvents(win, contentEl, settings);
       });
     });
 
@@ -1241,10 +1272,22 @@
       opt.addEventListener('click', function() {
         settings.wallpaper = this.dataset.wallpaper;
         saveSettings(settings);
+        applyWallpaper(settings.wallpaper);
         contentEl.innerHTML = buildAppearancePanel(settings);
         bindAppearanceEvents(win, contentEl, settings);
       });
     });
+  }
+
+  function bindSystemEvents(win, contentEl, settings) {
+    var serverInput = contentEl.querySelector('#set-server');
+    if (serverInput) {
+      serverInput.value = settings.serverUrl || 'http://localhost:8765';
+      serverInput.addEventListener('change', function() {
+        settings.serverUrl = this.value.trim();
+        saveSettings(settings);
+      });
+    }
   }
 
   function launch() {
