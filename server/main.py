@@ -1,0 +1,228 @@
+"""
+B-OS Backend Server
+Provides terminal execution, file system access, and AI chat proxy.
+Run: pip install -r requirements.txt && python main.py
+"""
+import os
+import subprocess
+import shlex
+import json
+from pathlib import Path
+
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+
+app = Flask(__name__)
+CORS(app)
+
+ALLOWED_DIRS = [
+    os.path.expanduser("~"),
+    "/home",
+    "/tmp",
+    "/etc",
+    "/var",
+]
+
+BLOCKED_COMMANDS = [
+    "rm", "dd", "mkfs", "shutdown", "reboot", "halt",
+    "poweroff", "init", "systemctl", "chmod", "chown",
+    "fdisk", "parted", "mount", "umount",
+]
+
+
+def is_path_allowed(path: str) -> bool:
+    """Check if a path is within allowed directories."""
+    real = os.path.realpath(os.path.expanduser(path))
+    for d in ALLOWED_DIRS:
+        d_real = os.path.realpath(os.path.expanduser(d))
+        if real.startswith(d_real):
+            return True
+    return False
+
+
+def sanitize_path(path: str) -> str:
+    """Expand and sanitize a path."""
+    path = os.path.expanduser(path)
+    # Prevent directory traversal
+    if ".." in path:
+        path = path.replace("..", "")
+    return path
+
+
+# ─── Terminal ────────────────────────────────────────────────────
+
+@app.route("/api/terminal/exec", methods=["POST"])
+def terminal_exec():
+    data = request.get_json(silent=True) or {}
+    cmd = data.get("command", "").strip()
+
+    if not cmd:
+        return jsonify({"stdout": "", "stderr": "", "exit_code": 0})
+
+    # Security: block dangerous commands
+    tokens = shlex.split(cmd)
+    if tokens and tokens[0] in BLOCKED_COMMANDS:
+        return jsonify({
+            "stdout": "",
+            "stderr": f"B-OS: Command '{tokens[0]}' is blocked for safety.",
+            "exit_code": 1
+        })
+
+    try:
+        result = subprocess.run(
+            cmd,
+            shell=True,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            cwd=os.path.expanduser("~")
+        )
+        return jsonify({
+            "stdout": result.stdout,
+            "stderr": result.stderr,
+            "exit_code": result.returncode
+        })
+    except subprocess.TimeoutExpired:
+        return jsonify({
+            "stdout": "",
+            "stderr": "Command timed out (30s limit).",
+            "exit_code": 124
+        })
+    except Exception as e:
+        return jsonify({
+            "stdout": "",
+            "stderr": str(e),
+            "exit_code": 1
+        })
+
+
+# ─── Files ───────────────────────────────────────────────────────
+
+@app.route("/api/files/list", methods=["GET"])
+def files_list():
+    path = sanitize_path(request.args.get("path", "~"))
+    abspath = os.path.expanduser(path)
+
+    if not os.path.exists(abspath):
+        return jsonify({"path": path, "entries": [], "error": "Path not found"})
+
+    if not is_path_allowed(abspath):
+        return jsonify({"path": path, "entries": [], "error": "Access denied"})
+
+    entries = []
+    try:
+        for name in sorted(os.listdir(abspath)):
+            full = os.path.join(abspath, name)
+            try:
+                stat = os.stat(full)
+                entries.append({
+                    "name": name,
+                    "type": "dir" if os.path.isdir(full) else "file",
+                    "size": stat.st_size,
+                    "modified": stat.st_mtime
+                })
+            except OSError:
+                entries.append({"name": name, "type": "unknown", "size": 0, "modified": 0})
+    except PermissionError:
+        return jsonify({"path": path, "entries": [], "error": "Permission denied"})
+
+    return jsonify({"path": path, "entries": entries})
+
+
+@app.route("/api/files/read", methods=["POST"])
+def files_read():
+    data = request.get_json(silent=True) or {}
+    path = sanitize_path(data.get("path", ""))
+    abspath = os.path.expanduser(path)
+
+    if not path:
+        return jsonify({"content": "", "error": "No path provided"})
+
+    if not os.path.exists(abspath):
+        return jsonify({"content": "", "error": "File not found"})
+
+    if not is_path_allowed(abspath):
+        return jsonify({"content": "", "error": "Access denied"})
+
+    # Don't read binary files
+    if os.path.getsize(abspath) > 1024 * 1024:  # 1MB limit
+        return jsonify({"content": "", "error": "File too large (>1MB)"})
+
+    try:
+        with open(abspath, "r", errors="replace") as f:
+            content = f.read()
+        return jsonify({"content": content})
+    except Exception as e:
+        return jsonify({"content": "", "error": str(e)})
+
+
+# ─── AI Chat (QWEN Proxy) ────────────────────────────────────────
+
+QWEN_API_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
+
+
+@app.route("/api/ai/chat", methods=["POST"])
+def ai_chat():
+    api_key = os.environ.get("QWEN_API_KEY", "")
+    if not api_key:
+        return jsonify({"reply": "B-OS: QWEN_API_KEY not set. Configure it in Settings.", "error": "no_api_key"})
+
+    data = request.get_json(silent=True) or {}
+    message = data.get("message", "").strip()
+    history = data.get("history", [])
+
+    if not message:
+        return jsonify({"reply": "", "error": "No message provided"})
+
+    messages = [{"role": "system", "content": "You are a helpful assistant running inside B-OS, a custom desktop operating system. Keep responses concise and helpful."}]
+    for h in history:
+        messages.append(h)
+    messages.append({"role": "user", "content": message})
+
+    try:
+        import requests
+        r = requests.post(
+            QWEN_API_URL,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "qwen-turbo",
+                "messages": messages,
+                "max_tokens": 1024
+            },
+            timeout=30
+        )
+        if r.status_code == 200:
+            body = r.json()
+            reply = body["choices"][0]["message"]["content"]
+            return jsonify({"reply": reply})
+        else:
+            return jsonify({"reply": f"QWEN API error: {r.status_code}", "error": str(r.status_code)})
+    except Exception as e:
+        return jsonify({"reply": f"Connection error: {str(e)}", "error": "connection_error"})
+
+
+# ─── Health ──────────────────────────────────────────────────────
+
+@app.route("/api/health", methods=["GET"])
+def health():
+    return jsonify({"status": "ok", "os": os.uname().sysname, "hostname": os.uname().nodename})
+
+
+# ─── Main ────────────────────────────────────────────────────────
+
+if __name__ == "__main__":
+    print("╔══════════════════════════════════════════════╗")
+    print("║           B-OS Backend Server v1.0           ║")
+    print("║        http://localhost:8765                 ║")
+    print("╠══════════════════════════════════════════════╣")
+    print("║  Endpoints:                                  ║")
+    print("║  POST /api/terminal/exec  - Run commands     ║")
+    print("║  GET  /api/files/list     - List directory   ║")
+    print("║  POST /api/files/read     - Read file        ║")
+    print("║  POST /api/ai/chat        - AI chat          ║")
+    print("║  GET  /api/health         - Server status    ║")
+    print("╚══════════════════════════════════════════════╝")
+    app.run(host="0.0.0.0", port=8765, debug=True)
