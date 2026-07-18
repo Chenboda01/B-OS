@@ -1,5 +1,0 @@
-- generic [ref=e3]:
-  - heading "401" [level=2] [ref=e4]
-  - generic [ref=e5]: Unauthorized
-  - link "go home" [ref=e7] [cursor=pointer]:
-    - /url: ./
