@@ -1396,33 +1396,35 @@ html, body {
       if (!el) return;
 
       if (win.maximized) {
-        /* Restore */
         if (win.prevRect) {
           win.x = win.prevRect.x;
           win.y = win.prevRect.y;
           win.w = win.prevRect.w;
           win.h = win.prevRect.h;
-          el.style.left = win.x + 'px';
-          el.style.top = win.y + 'px';
-          el.style.width = win.w + 'px';
-          el.style.height = win.h + 'px';
-          el.style.borderRadius = '';
         }
         win.maximized = false;
+        this._applyWindowRect(id);
+        el.style.borderRadius = '';
       } else {
-        /* Maximize */
         win.prevRect = { x: win.x, y: win.y, w: win.w, h: win.h };
         win.x = 0;
         win.y = 0;
         win.w = window.innerWidth;
         win.h = window.innerHeight - 48;
-        el.style.left = '0px';
-        el.style.top = '0px';
-        el.style.width = '100vw';
-        el.style.height = 'calc(100vh - 48px)';
-        el.style.borderRadius = '0';
         win.maximized = true;
+        this._applyWindowRect(id);
+        el.style.borderRadius = '0';
       }
+    },
+
+    _applyWindowRect: function(id) {
+      var win = this._windows[id];
+      var el = document.getElementById(id);
+      if (!win || !el) return;
+      el.style.left = win.x + 'px';
+      el.style.top = win.y + 'px';
+      el.style.width = win.w + 'px';
+      el.style.height = win.h + 'px';
     },
 
     setWindowContent: function(id, html) {
@@ -2108,9 +2110,15 @@ html, body {
         document.getElementById('shutdownText').textContent = 'Restarting...';
         setTimeout(function() { location.reload(); }, 2000);
       } else if (action === 'shutdown') {
-        document.getElementById('shutdownOverlay').classList.add('active');
+        var overlay = document.getElementById('shutdownOverlay');
+        overlay.classList.add('active');
         document.getElementById('shutdownText').textContent = 'Shutting down...';
-        setTimeout(function() { window.close(); }, 2000);
+        setTimeout(function() {
+          document.getElementById('desktop').style.display = 'none';
+          document.getElementById('taskbar').style.display = 'none';
+          overlay.innerHTML = '<div style="font-size:48px;margin-bottom:16px;">⏻</div><div style="font-size:18px;margin-bottom:24px;">B-OS is powered off</div><button id="powerOn" style="background:#0078d4;color:#fff;border:none;padding:12px 32px;border-radius:4px;cursor:pointer;font-size:14px;">Power On</button>';
+          document.getElementById('powerOn').addEventListener('click', function() { location.reload(); });
+        }, 1500);
       }
     });
   });
@@ -2294,7 +2302,14 @@ html, body {
     var container = document.getElementById('toastContainer');
     var toast = document.createElement('div');
     toast.className = 'toast';
-    toast.innerHTML = '<strong>'+title+'</strong><br><span style="color:#999;font-size:11px;">'+msg+'</span>';
+    var h = document.createElement('strong');
+    h.textContent = title;
+    var b = document.createElement('span');
+    b.style.cssText = 'color:#999;font-size:11px;';
+    b.textContent = msg;
+    toast.appendChild(h);
+    toast.appendChild(document.createElement('br'));
+    toast.appendChild(b);
     container.appendChild(toast);
     setTimeout(function() { toast.classList.add('out'); }, 3000);
     setTimeout(function() { toast.remove(); }, 3600);
@@ -2321,15 +2336,17 @@ html, body {
   /* ─────────────────────────────────────────────────
      WINDOW SNAPPING (drag to edges)
      ───────────────────────────────────────────────── */
-  var origMouseUp = document.addEventListener;
   document.addEventListener('mouseup', function(e) {
     setTimeout(function() {
       if (!BOS._focusedId) return;
-      var w = BOS._windows[BOS._focusedId];
-      if (!w) return;
-      if (w.x <= 5 && w.y <= 5 && w.w > window.innerWidth/2) { w.x=0; w.y=0; w.w=window.innerWidth/2; w.h=window.innerHeight-48; BOS.setWindowContent(BOS._focusedId, BOS._windows[BOS._focusedId].content); }
-      else if (w.x+w.w >= window.innerWidth-5 && w.y <= 5) { w.x=window.innerWidth/2; w.y=0; w.w=window.innerWidth/2; w.h=window.innerHeight-48; }
-      else if (w.y <= 5 && w.h > window.innerHeight*0.8) { w.x=0; w.y=0; w.w=window.innerWidth; w.h=window.innerHeight-48; }
+      var id = BOS._focusedId;
+      var w = BOS._windows[id];
+      if (!w || w.maximized) return;
+      var H = window.innerHeight - 48;
+      var HW = window.innerWidth / 2;
+      if (w.x <= 5 && w.y <= 5 && w.w > HW * 0.8) { w.x=0; w.y=0; w.w=HW; w.h=H; BOS._applyWindowRect(id); }
+      else if (w.x + w.w >= window.innerWidth - 5 && w.y <= 5) { w.x=HW; w.y=0; w.w=HW; w.h=H; BOS._applyWindowRect(id); }
+      else if (w.y <= 5 && w.h > H * 0.8) { w.x=0; w.y=0; w.w=window.innerWidth; w.h=H; BOS._applyWindowRect(id); }
     }, 100);
   });
 
