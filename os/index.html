@@ -1946,13 +1946,14 @@ html, body {
   var weatherIcon = document.getElementById('weatherIcon');
   var weatherTemp = document.getElementById('weatherTemp');
   if (navigator.onLine) {
-    fetch('https://wttr.in/?format=%C+%t')
-      .then(function(r) { return r.text(); })
+    fetch('https://api.open-meteo.com/v1/forecast?latitude=40.7&longitude=-74&current_weather=true&timezone=auto')
+      .then(function(r) { return r.json(); })
       .then(function(data) {
-        var parts = data.trim().split(' ');
-        if (parts.length >= 2) {
-          weatherIcon.textContent = parts[0];
-          weatherTemp.textContent = parts[1];
+        if (data.current_weather) {
+          var code = data.current_weather.weathercode;
+          var icons = ['☀️','🌤️','⛅','☁️','🌧️','⛈️','🌨️','🌫️'];
+          weatherIcon.textContent = icons[Math.min(code, 7)] || '☀️';
+          weatherTemp.textContent = Math.round(data.current_weather.temperature) + '°';
         }
       })
       .catch(function() {});

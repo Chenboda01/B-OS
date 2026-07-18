@@ -1210,7 +1210,6 @@ if (data.error.indexOf('QWEN_API_KEY') !== -1 || data.error.indexOf('key') !== -
           o.style.color = o.dataset.wallpaper === settings.wallpaper ? '#00f0ff' : '#9999cc';
         });
       });
-      });
     });
   }
 
