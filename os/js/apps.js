@@ -838,14 +838,12 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
     API.chat(text, chatHistory).then(function(data) {
       removeThinking();
       isThinking = false;
-      if (data.error) {
-        addMessage(container, 'assistant', 'Error: ' + data.error);
-if (data.error.indexOf('QWEN_API_KEY') !== -1 || data.error.indexOf('key') !== -1) {
-            addMessage(container, 'assistant', '💡 QWEN API key not set. Get a free key at dashscope.console.aliyun.com, then run: export QWEN_API_KEY=your_key_on_server');
-        }
-      } else {
-        addMessage(container, 'assistant', data.reply || '(no response)');
-        chatHistory.push({ role: 'assistant', content: data.reply || '' });
+      if (data.reply) {
+        addMessage(container, 'assistant', data.reply);
+        chatHistory.push({ role: 'assistant', content: data.reply });
+      }
+      if (data.error && data.error !== 'no_api_key') {
+        addMessage(container, 'assistant', '⚠ ' + data.error);
       }
     }).catch(function(err) {
       removeThinking();

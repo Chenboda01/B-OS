@@ -116,6 +116,27 @@ def terminal_commands():
         return jsonify({"count": 0, "commands": [], "error": str(e)})
 
 
+@app.route("/api/terminal/which", methods=["GET"])
+def terminal_which():
+    cmd = request.args.get("cmd", "").strip()
+    if not cmd:
+        return jsonify({"path": "", "error": "No command specified"})
+    try:
+        result = subprocess.run(
+            ["which", cmd],
+            capture_output=True, text=True, timeout=5
+        )
+        path = result.stdout.strip()
+        if result.returncode == 0 and path:
+            return jsonify({"path": path, "exists": True})
+        else:
+            return jsonify({"path": "", "exists": False, "error": result.stderr.strip() or f"{cmd}: not found"})
+    except FileNotFoundError:
+        return jsonify({"path": "", "exists": False, "error": "which command not available"})
+    except Exception as e:
+        return jsonify({"path": "", "exists": False, "error": str(e)})
+
+
 # ─── Files ───────────────────────────────────────────────────────
 
 @app.route("/api/files/list", methods=["GET"])

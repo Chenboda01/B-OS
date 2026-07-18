@@ -50,5 +50,14 @@ const API = {
     } catch {
       return { count: 0, commands: [] };
     }
+  },
+
+  async whichCmd(cmd) {
+    try {
+      const r = await fetch(`${API_BASE}/api/terminal/which?cmd=${encodeURIComponent(cmd)}`);
+      return r.json();
+    } catch {
+      return { path: '', exists: false, error: 'Backend offline' };
+    }
   }
 };
