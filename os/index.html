@@ -809,7 +809,7 @@ html, body {
 #trayVolume:hover { background: rgba(255,255,255,0.06); }
 #volSlider { display: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 8px; background: #1e1e2e; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 8px; width: 32px; height: 100px; }
 #trayVolume:hover #volSlider { display: flex; align-items: center; justify-content: center; }
-#volRange { -webkit-appearance: slider-vertical; writing-mode: bt-lr; width: 20px; height: 100%; }
+#volRange { writing-mode: vertical-lr; direction: rtl; width: 20px; height: 100%; }
 
 #calendarPopup { display: none; position: fixed; bottom: 56px; right: 8px; background: #1e1e2e; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 16px; z-index: 1000; min-width: 250px; box-shadow: 0 4px 16px rgba(0,0,0,0.4); }
 #calendarPopup.open { display: block; }
@@ -1778,7 +1778,6 @@ html, body {
         try { initParticles(); } catch(e) {}
         restoreSettings();
         requestFullscreen();
-        showLogin('Welcome to B-OS');
       }, 500);
     }
   }
