@@ -96,6 +96,20 @@ def terminal_exec():
         })
 
 
+@app.route("/api/terminal/commands", methods=["GET"])
+def terminal_commands():
+    """Return all available system commands."""
+    try:
+        result = subprocess.run(
+            "compgen -c | sort | uniq",
+            shell=True, capture_output=True, text=True, timeout=10
+        )
+        commands = [c.strip() for c in result.stdout.strip().split("\n") if c.strip()]
+        return jsonify({"count": len(commands), "commands": commands})
+    except Exception as e:
+        return jsonify({"count": 0, "commands": [], "error": str(e)})
+
+
 # ─── Files ───────────────────────────────────────────────────────
 
 @app.route("/api/files/list", methods=["GET"])

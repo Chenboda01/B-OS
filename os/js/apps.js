@@ -251,49 +251,56 @@
       return;
     }
 
-    if (cmd0 === 'ls' || cmd0 === 'cd' || cmd0 === 'cat' || cmd0 === 'mkdir' || cmd0 === 'touch' || cmd0 === 'rm' || cmd0 === 'cp' || cmd0 === 'mv' || cmd0 === 'grep' || cmd0 === 'chmod' || cmd0 === 'chown' || cmd0 === 'ps' || cmd0 === 'df' || cmd0 === 'du' || cmd0 === 'top' || cmd0 === 'kill' || cmd0 === 'env' || cmd0 === 'export' || cmd0 === 'alias' || cmd0 === 'sudo') {
-      var apiCmd = trimmed;
-      if (cmd0 === 'cd') {
-        appendOutput(outputEl, '', '#9999cc');
-        scrollBottom(outputEl);
-        if (args.length === 0 || args[0] === '~') {
-          currentDir = '~';
-        } else {
-          var newPath = args[0];
-          if (!newPath.startsWith('/') && newPath !== '~') {
-            newPath = (currentDir === '~' ? '/home' : currentDir) + '/' + newPath;
-          }
-          var parts = newPath.split('/').filter(function(p) { return p && p !== '.'; });
-          var resolved = [];
-          for (var i = 0; i < parts.length; i++) {
-            if (parts[i] === '..') { resolved.pop(); }
-            else { resolved.push(parts[i]); }
-          }
-          currentDir = '/' + resolved.join('/');
-          if (currentDir === '/home') currentDir = '~';
+    if (cmd0 === 'cd') {
+      appendOutput(outputEl, '', '#9999cc');
+      scrollBottom(outputEl);
+      if (args.length === 0 || args[0] === '~') {
+        currentDir = '~';
+      } else {
+        var newPath = args[0];
+        if (!newPath.startsWith('/') && newPath !== '~') {
+          newPath = (currentDir === '~' ? '/home' : currentDir) + '/' + newPath;
         }
-        var promptSpan = outputEl.closest('.bos-app').querySelector('div:last-child span');
-        if (promptSpan) {
-          promptSpan.innerHTML = esc('b-os') + '@<span style="color:#9999cc;">local</span> <span style="color:#00ff88;">' + esc(currentDir) + '</span> $ ';
+        var parts = newPath.split('/').filter(function(p) { return p && p !== '.'; });
+        var resolved = [];
+        for (var i = 0; i < parts.length; i++) {
+          if (parts[i] === '..') { resolved.pop(); }
+          else { resolved.push(parts[i]); }
         }
-        return;
+        currentDir = '/' + resolved.join('/');
+        if (currentDir === '/home') currentDir = '~';
       }
-      API.exec(apiCmd).then(function(res) {
-        if (res.stdout) appendOutput(outputEl, res.stdout, '#e8eaff');
-        if (res.stderr) appendOutput(outputEl, res.stderr, '#ff3355');
-        if (res.exit_code && res.exit_code !== 0 && !res.stdout && !res.stderr) {
-          appendOutput(outputEl, 'Command exited with code ' + res.exit_code, '#ff3355');
-        }
-        scrollBottom(outputEl);
-      }).catch(function(err) {
-        appendOutput(outputEl, 'Error: ' + (err.message || 'Could not connect to backend'), '#ff3355');
-        scrollBottom(outputEl);
-      });
+      var promptSpan = outputEl.closest('.bos-app').querySelector('div:last-child span');
+      if (promptSpan) {
+        promptSpan.innerHTML = esc('b-os') + '@<span style="color:#9999cc;">local</span> <span style="color:#00ff88;">' + esc(currentDir) + '</span> $ ';
+      }
       return;
     }
 
-    appendOutput(outputEl, "b-OS: command not found: " + cmd0 + "\nType 'help' for available commands.", '#ff3355');
-    scrollBottom(outputEl);
+    /* Send all other commands to the backend */
+    appendOutput(outputEl, "$ " + trimmed, '#555580');
+    API.exec(trimmed).then(function(res) {
+      if (res.stdout) appendOutput(outputEl, res.stdout, '#e8eaff');
+      if (res.stderr) appendOutput(outputEl, res.stderr, '#ff3355');
+      if (res.exit_code && res.exit_code !== 0 && !res.stdout && !res.stderr) {
+        appendOutput(outputEl, 'Exit code: ' + res.exit_code, '#ff3355');
+      }
+      scrollBottom(outputEl);
+    }).catch(function(err) {
+      appendOutput(outputEl, 'Backend offline. Start: python server/main.py', '#ff3355');
+    });
+
+    appendOutput(outputEl, "$ " + trimmed, '#555580');
+    API.exec(trimmed).then(function(res) {
+      if (res.stdout) appendOutput(outputEl, res.stdout, '#e8eaff');
+      if (res.stderr) appendOutput(outputEl, res.stderr, '#ff3355');
+      if (res.exit_code && res.exit_code !== 0 && !res.stdout && !res.stderr) {
+        appendOutput(outputEl, 'Exit code: ' + res.exit_code, '#ff3355');
+      }
+      scrollBottom(outputEl);
+    }).catch(function(err) {
+      appendOutput(outputEl, 'Backend offline. Start server: python server/main.py', '#ff3355');
+    });
   }
 
   function setupEvents(win) {
@@ -304,11 +311,20 @@
     appendHTML(outputEl,
       '<div style="color:#00f0ff;margin-bottom:4px;">╔══════════════════════════════════════════╗</div>' +
       '<div style="color:#00f0ff;">║      <span style="color:#e8eaff;font-weight:bold;">B-OS Terminal v1.0</span>                   ║</div>' +
-      '<div style="color:#00f0ff;">║      Connected to B-OS Terminal          ║</div>' +
       '<div style="color:#00f0ff;">║      Type <span style="color:#00ff88;">help</span> for commands              ║</div>' +
       '<div style="color:#00f0ff;">╚══════════════════════════════════════════╝</div>' +
-      '<div style="margin-top:8px;color:#555580;">Welcome. Terminal session initialized.</div>'
+      '<div style="margin-top:8px;color:#555580;">Loading system commands...</div>'
     );
+
+    API.fetchCommands().then(function(data) {
+      if (data.commands && data.commands.length > 0) {
+        KNOWN_COMMANDS = data.commands.slice(0, 500);
+        appendOutput(outputEl, '');
+        appendOutput(outputEl, data.count + ' system commands available.', '#00ff88');
+      }
+    }).catch(function() {
+      appendOutput(outputEl, '');
+    });
 
     inputEl.focus();
 

@@ -37,9 +37,18 @@ const API = {
   async health() {
     try {
       const r = await fetch(`${API_BASE}/api/health`);
-      return r.json(); // { status: "ok" }
+      return r.json();
     } catch {
       return { status: 'offline' };
+    }
+  },
+
+  async fetchCommands() {
+    try {
+      const r = await fetch(`${API_BASE}/api/terminal/commands`);
+      return r.json();
+    } catch {
+      return { count: 0, commands: [] };
     }
   }
 };
