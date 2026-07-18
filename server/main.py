@@ -55,9 +55,15 @@ def sanitize_path(path: str) -> str:
 def terminal_exec():
     data = request.get_json(silent=True) or {}
     cmd = data.get("command", "").strip()
+    cwd = data.get("cwd", os.path.expanduser("~"))
 
     if not cmd:
         return jsonify({"stdout": "", "stderr": "", "exit_code": 0})
+
+    # Validate cwd
+    cwd = os.path.expanduser(str(cwd))
+    if not os.path.isdir(cwd):
+        cwd = os.path.expanduser("~")
 
     # Security: block dangerous commands
     tokens = shlex.split(cmd)
@@ -75,7 +81,7 @@ def terminal_exec():
             capture_output=True,
             text=True,
             timeout=30,
-            cwd=os.path.expanduser("~")
+            cwd=cwd
         )
         return jsonify({
             "stdout": result.stdout,
@@ -179,7 +185,7 @@ QWEN_API_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completio
 def ai_chat():
     api_key = os.environ.get("QWEN_API_KEY", "")
     if not api_key:
-        return jsonify({"reply": "B-OS: QWEN_API_KEY not set. Configure it in Settings.", "error": "no_api_key"})
+        return jsonify({"reply": "B-OS AI requires a QWEN API key. Get a free key at dashscope.console.aliyun.com, then set: export QWEN_API_KEY=your_key && python main.py"})
 
     data = request.get_json(silent=True) or {}
     message = data.get("message", "").strip()

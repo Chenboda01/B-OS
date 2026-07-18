@@ -854,6 +854,26 @@ html, body {
 }
 #shutdownOverlay.active { display: flex; }
 
+#loginOverlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: linear-gradient(180deg, #0d3b66, #050510);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+#loginOverlay.active { display: flex; }
+#loginBox {
+  background: rgba(10,10,26,0.95);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 32px;
+  width: 320px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
 #trayClock {
   font-size: 12px;
   color: var(--text-bright);
@@ -1089,6 +1109,23 @@ html, body {
 <div id="shutdownOverlay">
   <div style="font-size:48px;margin-bottom:16px;">⏻</div>
   <div id="shutdownText">Shutting down...</div>
+</div>
+
+<div id="loginOverlay">
+  <div id="loginBox">
+    <div style="text-align:center;margin-bottom:24px;">
+      <div style="font-size:48px;">☁️</div>
+      <div style="font-size:18px;font-weight:bold;color:#e8eaff;margin-top:8px;">B-CLOUD</div>
+      <div id="loginMsg" style="color:#9999cc;font-size:11px;margin-top:4px;">Sign in to your account</div>
+    </div>
+    <input id="loginUser" type="text" placeholder="Username" style="width:100%;padding:10px;margin-bottom:8px;background:#0a0a1a;border:1px solid #181848;color:#e8eaff;border-radius:4px;outline:none;font-size:13px;">
+    <input id="loginPass" type="password" placeholder="Password" style="width:100%;padding:10px;margin-bottom:12px;background:#0a0a1a;border:1px solid #181848;color:#e8eaff;border-radius:4px;outline:none;font-size:13px;">
+    <button id="loginBtn" style="width:100%;padding:10px;background:#0078d4;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:13px;font-weight:bold;">Sign In</button>
+    <div style="text-align:center;margin-top:12px;">
+      <span id="signupLink" style="color:#0078d4;cursor:pointer;font-size:11px;">Create an account</span>
+    </div>
+    <div id="loginError" style="color:#ff3355;font-size:11px;margin-top:8px;text-align:center;display:none;"></div>
+  </div>
 </div>
 
 <!-- ═══════════════════════════════════════════════════
@@ -1680,6 +1717,7 @@ html, body {
         try { initParticles(); } catch(e) {}
         restoreSettings();
         requestFullscreen();
+        showLogin('Welcome to B-OS');
       }, 500);
     }
   }
@@ -1980,12 +2018,14 @@ html, body {
       var action = this.dataset.action;
       powerMenu.classList.remove('open');
       if (action === 'lock') {
-        document.getElementById('shutdownOverlay').classList.add('active');
-        document.getElementById('shutdownText').textContent = 'Locked';
-        setTimeout(function() { document.getElementById('shutdownOverlay').classList.remove('active'); }, 1500);
+        showLogin('Locked');
       } else if (action === 'sleep') {
         document.getElementById('shutdownOverlay').classList.add('active');
         document.getElementById('shutdownText').textContent = 'Sleeping...';
+        setTimeout(function() {
+          document.getElementById('shutdownOverlay').classList.remove('active');
+          showLogin('Wake from sleep');
+        }, 2000);
       } else if (action === 'restart') {
         document.getElementById('shutdownOverlay').classList.add('active');
         document.getElementById('shutdownText').textContent = 'Restarting...';
@@ -1993,9 +2033,80 @@ html, body {
       } else if (action === 'shutdown') {
         document.getElementById('shutdownOverlay').classList.add('active');
         document.getElementById('shutdownText').textContent = 'Shutting down...';
-        setTimeout(function() { document.getElementById('shutdownOverlay').style.opacity = '0'; }, 2000);
+        setTimeout(function() { window.close(); }, 2000);
       }
     });
+  });
+
+  /* ─────────────────────────────────────────────────
+     B-CLOUD LOGIN / SIGNUP
+     ───────────────────────────────────────────────── */
+  var loginOverlay = document.getElementById('loginOverlay');
+  var loginMsg = document.getElementById('loginMsg');
+  var loginBtn = document.getElementById('loginBtn');
+  var loginError = document.getElementById('loginError');
+  var signupLink = document.getElementById('signupLink');
+  var isSignup = false;
+
+  function showLogin(msg) {
+    loginMsg.textContent = msg || 'Sign in to your account';
+    loginOverlay.classList.add('active');
+    document.getElementById('loginUser').focus();
+  }
+
+  function hideLogin() {
+    loginOverlay.classList.remove('active');
+    document.getElementById('loginUser').value = '';
+    document.getElementById('loginPass').value = '';
+    loginError.style.display = 'none';
+  }
+
+  loginBtn.addEventListener('click', function() {
+    var user = document.getElementById('loginUser').value.trim();
+    var pass = document.getElementById('loginPass').value.trim();
+    if (!user || !pass) {
+      loginError.textContent = 'Please enter username and password.';
+      loginError.style.display = 'block';
+      return;
+    }
+    if (isSignup) {
+      var existing = localStorage.getItem('bos-user-' + user);
+      if (existing) {
+        loginError.textContent = 'Username already exists.';
+        loginError.style.display = 'block';
+        return;
+      }
+      localStorage.setItem('bos-user-' + user, pass);
+      loginError.style.display = 'none';
+      hideLogin();
+    } else {
+      var stored = localStorage.getItem('bos-user-' + user);
+      if (stored === pass) {
+        loginError.style.display = 'none';
+        hideLogin();
+      } else {
+        loginError.textContent = 'Invalid username or password.';
+        loginError.style.display = 'block';
+      }
+    }
+  });
+
+  document.getElementById('loginPass').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') loginBtn.click();
+  });
+
+  signupLink.addEventListener('click', function() {
+    isSignup = !isSignup;
+    if (isSignup) {
+      loginMsg.textContent = 'Create a B-CLOUD account';
+      loginBtn.textContent = 'Sign Up';
+      signupLink.textContent = 'Already have an account? Sign in';
+    } else {
+      loginMsg.textContent = 'Sign in to your account';
+      loginBtn.textContent = 'Sign In';
+      signupLink.textContent = 'Create an account';
+    }
+    loginError.style.display = 'none';
   });
 
   /* Remove old document click handler (now combined with power menu) */

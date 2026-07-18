@@ -252,34 +252,47 @@
     }
 
     if (cmd0 === 'cd') {
-      appendOutput(outputEl, '', '#9999cc');
-      scrollBottom(outputEl);
-      if (args.length === 0 || args[0] === '~') {
-        currentDir = '~';
-      } else {
-        var newPath = args[0];
-        if (!newPath.startsWith('/') && newPath !== '~') {
-          newPath = (currentDir === '~' ? '/home' : currentDir) + '/' + newPath;
+      var realCwd = currentDir === '~' ? '/home' : currentDir;
+      API.exec(trimmed, realCwd).then(function(res) {
+        if (res.exit_code === 0) {
+          appendOutput(outputEl, '', '#9999cc');
+          if (args.length === 0 || args[0] === '~') {
+            currentDir = '~';
+          } else {
+            var newPath = args[0];
+            if (!newPath.startsWith('/') && newPath !== '~') {
+              newPath = (currentDir === '~' ? '/home' : currentDir) + '/' + newPath;
+            }
+            var parts = newPath.split('/').filter(function(p) { return p && p !== '.'; });
+            var resolved = [];
+            for (var i = 0; i < parts.length; i++) {
+              if (parts[i] === '..') { resolved.pop(); }
+              else { resolved.push(parts[i]); }
+            }
+            currentDir = '/' + resolved.join('/');
+            if (currentDir === '/home') currentDir = '~';
+          }
+          var promptSpan = outputEl.closest('.bos-app').querySelector('div:last-child span');
+          if (promptSpan) {
+            promptSpan.innerHTML = esc('b-os') + '@<span style="color:#9999cc;">local</span> <span style="color:#00ff88;">' + esc(currentDir) + '</span> $ ';
+          }
+        } else {
+          appendOutput(outputEl, 'cd: ' + (res.stderr || 'No such directory'), '#ff3355');
         }
-        var parts = newPath.split('/').filter(function(p) { return p && p !== '.'; });
-        var resolved = [];
-        for (var i = 0; i < parts.length; i++) {
-          if (parts[i] === '..') { resolved.pop(); }
-          else { resolved.push(parts[i]); }
-        }
-        currentDir = '/' + resolved.join('/');
-        if (currentDir === '/home') currentDir = '~';
-      }
-      var promptSpan = outputEl.closest('.bos-app').querySelector('div:last-child span');
-      if (promptSpan) {
-        promptSpan.innerHTML = esc('b-os') + '@<span style="color:#9999cc;">local</span> <span style="color:#00ff88;">' + esc(currentDir) + '</span> $ ';
-      }
+        scrollBottom(outputEl);
+      }).catch(function() {
+        appendOutput(outputEl, 'cd: backend offline', '#ff3355');
+      });
       return;
     }
 
     /* Send all other commands to the backend */
+    var realCwd = currentDir === '~' ? '/home' : currentDir;
+    if (realCwd === '/home') {
+      realCwd = '/home';
+    }
     appendOutput(outputEl, "$ " + trimmed, '#555580');
-    API.exec(trimmed).then(function(res) {
+    API.exec(trimmed, realCwd).then(function(res) {
       if (res.stdout) appendOutput(outputEl, res.stdout, '#e8eaff');
       if (res.stderr) appendOutput(outputEl, res.stderr, '#ff3355');
       if (res.exit_code && res.exit_code !== 0 && !res.stdout && !res.stderr) {
@@ -1222,6 +1235,26 @@ if (data.error.indexOf('QWEN_API_KEY') !== -1 || data.error.indexOf('key') !== -
         saveSettings(settings);
       });
     }
+  }
+
+  function buildUpdatesPanel() {
+    return '<div id="panel-updates">' +
+      '<div style="color:#e8eaff;font-size:14px;font-weight:bold;margin-bottom:16px;">Software Update</div>' +
+      '<div style="padding:16px;border:1px solid #181848;border-radius:4px;background:#0a0a1a;margin-bottom:16px;text-align:center;">' +
+        '<div style="font-size:24px;font-weight:bold;color:#00f0ff;margin-bottom:4px;">B-OS v0.2.0</div>' +
+        '<div id="update-status" style="color:#00ff88;font-size:11px;margin-bottom:12px;">Your system is up to date.</div>' +
+        '<button id="btn-check-updates" style="background:#0078d4;color:#fff;border:none;padding:8px 24px;border-radius:4px;cursor:pointer;font-size:12px;">Check for Updates</button>' +
+        '<div id="update-progress" style="margin-top:12px;display:none;">' +
+          '<div style="height:6px;background:#181848;border-radius:3px;overflow:hidden;">' +
+            '<div id="update-bar" style="height:100%;width:0;background:linear-gradient(90deg,#0078d4,#00f0ff);border-radius:3px;transition:width 0.3s;"></div>' +
+          '</div>' +
+          '<div id="update-label" style="color:#9999cc;font-size:11px;margin-top:6px;">Checking for updates...</div>' +
+        '</div>' +
+      '</div>' +
+      '<div style="color:#555580;font-size:10px;line-height:1.6;">' +
+        'Update channel: <span style="color:#00f0ff;">Stable</span>' +
+      '</div>' +
+    '</div>';
   }
 
   function bindUpdatesEvents(win, contentEl) {

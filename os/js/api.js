@@ -2,11 +2,11 @@
 const API_BASE = 'http://localhost:8765';
 
 const API = {
-  async exec(cmd) {
+  async exec(cmd, cwd) {
     const r = await fetch(`${API_BASE}/api/terminal/exec`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ command: cmd })
+      body: JSON.stringify({ command: cmd, cwd: cwd || '~' })
     });
     return r.json(); // { stdout, stderr, exit_code }
   },
