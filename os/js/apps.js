@@ -1776,3 +1776,118 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
     launch: launch
   });
 })();
+
+(function() {
+  function createUI() {
+    return '<div class="bos-app" style="padding:16px;background:#050510;color:#e8eaff;font-family:monospace;font-size:12px;overflow-y:auto;height:100%;">' +
+      '<div style="font-weight:bold;font-size:14px;margin-bottom:12px;">Task Manager</div>' +
+      '<div style="display:flex;gap:16px;margin-bottom:16px;">' +
+        '<div style="flex:1;padding:12px;background:#0a0a1a;border-radius:4px;text-align:center;">' +
+          '<div style="color:#00f0ff;font-size:22px;font-weight:bold;">' + navigator.hardwareConcurrency + '</div><div style="color:#555;font-size:10px;">CPU Cores</div>' +
+        '</div>' +
+        '<div style="flex:1;padding:12px;background:#0a0a1a;border-radius:4px;text-align:center;">' +
+          '<div style="color:#00ff88;font-size:22px;font-weight:bold;">' + (navigator.deviceMemory||'?') + '</div><div style="color:#555;font-size:10px;">GB RAM</div>' +
+        '</div>' +
+      '</div>' +
+      '<div id="tm-proc" style="color:#555;font-size:11px;margin-bottom:12px;"></div>' +
+      '<div id="tm-list" style="max-height:200px;overflow-y:auto;"></div>' +
+    '</div>';
+  }
+  function setupEvents(win) {
+    win.querySelector('#tm-proc').textContent = 'Processes: ' + Object.keys(BOS._windows).length + ' windows';
+    var list = win.querySelector('#tm-list');
+    Object.keys(BOS._windows).forEach(function(id) {
+      var w = BOS._windows[id];
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.03);';
+      row.innerHTML = '<span>'+w.icon+' '+w.title+'</span><button data-id="'+id+'" style="background:#ff3355;color:#fff;border:none;padding:2px 8px;border-radius:2px;cursor:pointer;font-size:10px;">End</button>';
+      row.querySelector('button').addEventListener('click', function() { BOS.closeWindow(id); setupEvents(win); });
+      list.appendChild(row);
+    });
+  }
+  function launch() { var w = BOS.createWindow({title:'Task Manager',icon:'📊',width:400,height:350,content:createUI()}); setupEvents(w); }
+  BOS.registerApp({ id:'taskmgr', name:'Task Manager', icon:'📊', category:'system', launch:launch });
+})();
+
+(function() {
+  var display = '0', op = '', prev = '';
+  function createUI() {
+    var btns = ['AC','±','%','÷','7','8','9','×','4','5','6','−','1','2','3','+','0','.','='];
+    var html = '<div class="bos-app" style="display:flex;flex-direction:column;height:100%;background:#050510;padding:8px;">' +
+      '<div id="calc-display" style="background:#0a0a1a;color:#00ff88;font-size:28px;text-align:right;padding:16px;border-radius:4px;margin-bottom:8px;font-family:monospace;overflow:hidden;">0</div>' +
+      '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;flex:1;">';
+    btns.forEach(function(b) { html += '<button class="calc-btn" data-v="'+b+'" style="background:#111130;border:1px solid #181848;color:#e8eaff;font-size:16px;border-radius:4px;cursor:pointer;">'+b+'</button>'; });
+    html += '</div></div>';
+    return html;
+  }
+  function setupEvents(win) {
+    var d = win.querySelector('#calc-display');
+    win.querySelectorAll('.calc-btn').forEach(function(b) {
+      b.addEventListener('click', function() {
+        var v = this.dataset.v;
+        if (v === 'AC') { display='0'; op=''; prev=''; }
+        else if (v === '±') { display = String(-parseFloat(display)); }
+        else if (v === '%') { display = String(parseFloat(display)/100); }
+        else if (v === '=') { if(op&&prev){ display=String(eval(prev+op+display)); op=''; prev=''; } }
+        else if ('+-×÷'.indexOf(v)>=0) { prev=display; op=v.replace('×','*').replace('÷','/'); display='0'; }
+        else if (v === '.' && display.indexOf('.')>=0) return;
+        else { display = display==='0'?v:display+v; }
+        d.textContent = display.length>12 ? parseFloat(display).toExponential(6) : display;
+      });
+    });
+  }
+  function launch() { var w = BOS.createWindow({title:'Calculator',icon:'🔢',width:280,height:360,content:createUI()}); setupEvents(w); }
+  BOS.registerApp({ id:'calculator', name:'Calculator', icon:'🔢', category:'utility', launch:launch });
+})();
+
+(function() {
+  function createUI() {
+    return '<div class="bos-app" style="display:flex;flex-direction:column;height:100%;background:#050510;">' +
+      '<div style="display:flex;gap:4px;padding:4px 8px;background:#0a0a1a;border-bottom:1px solid rgba(255,255,255,0.05);">' +
+        '<button id="np-save" style="background:#0078d4;color:#fff;border:none;padding:4px 12px;border-radius:2px;cursor:pointer;font-size:11px;">Save</button>' +
+        '<button id="np-load" style="background:#181848;color:#ccc;border:none;padding:4px 12px;border-radius:2px;cursor:pointer;font-size:11px;">Load</button>' +
+      '</div>' +
+      '<textarea id="np-text" style="flex:1;background:#050510;color:#e8eaff;border:none;outline:none;resize:none;padding:12px;font-family:monospace;font-size:13px;"></textarea>' +
+    '</div>';
+  }
+  function setupEvents(win) {
+    var ta = win.querySelector('#np-text');
+    win.querySelector('#np-save').addEventListener('click', function() { localStorage.setItem('bos-notepad', ta.value); showToast('Notepad','Saved'); });
+    win.querySelector('#np-load').addEventListener('click', function() { ta.value = localStorage.getItem('bos-notepad')||''; showToast('Notepad','Loaded'); });
+  }
+  function launch() { var w = BOS.createWindow({title:'Notepad',icon:'📝',width:500,height:400,content:createUI()}); setupEvents(w); }
+  BOS.registerApp({ id:'notepad', name:'Notepad', icon:'📝', category:'utility', launch:launch });
+})();
+
+(function() {
+  var toggles = { wifi:true, bluetooth:false, nightlight:false, dnd:false };
+  function createUI() {
+    function row(icon,label,id,on) {
+      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.03);">' +
+        '<span>'+icon+' '+label+'</span>' +
+        '<div class="qs-toggle" data-id="'+id+'" style="width:36px;height:20px;border-radius:10px;cursor:pointer;transition:0.2s;background:'+(on?'#0078d4':'#333')+';position:relative;">' +
+          '<div style="width:16px;height:16px;border-radius:50%;background:#fff;position:absolute;top:2px;left:'+(on?'18px':'2px')+';transition:0.2s;"></div>' +
+        '</div></div>';
+    }
+    return '<div class="bos-app" style="padding:16px;background:#050510;color:#e8eaff;font-size:12px;height:100%;overflow-y:auto;">' +
+      '<div style="font-weight:bold;font-size:14px;margin-bottom:16px;">Quick Settings</div>' +
+      row('📶','WiFi','wifi',true) + row('📡','Bluetooth','bluetooth',false) +
+      row('🌙','Night Light','nightlight',false) + row('🔕','Do Not Disturb','dnd',false) +
+      '<div style="margin-top:12px;color:#555;font-size:10px;">Volume: <span style="color:#00f0ff;">70%</span> | Brightness: <span style="color:#00f0ff;">100%</span></div>' +
+    '</div>';
+  }
+  function setupEvents(win) {
+    win.querySelectorAll('.qs-toggle').forEach(function(t) {
+      t.addEventListener('click', function() {
+        var id = this.dataset.id;
+        toggles[id] = !toggles[id];
+        var on = toggles[id];
+        this.style.background = on ? '#0078d4' : '#333';
+        this.querySelector('div').style.left = on ? '18px' : '2px';
+        showToast(id.charAt(0).toUpperCase()+id.slice(1), on?'On':'Off');
+      });
+    });
+  }
+  function launch() { var w = BOS.createWindow({title:'Quick Settings',icon:'⚡',width:300,height:280,content:createUI()}); setupEvents(w); }
+  BOS.registerApp({ id:'quicksettings', name:'Quick Settings', icon:'⚡', category:'system', launch:launch });
+})();
