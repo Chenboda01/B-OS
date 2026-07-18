@@ -1,0 +1,35 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]: ██████╗ ███████╗ ███████╗ ██████╗ ██████╗
+  - generic [ref=e9]:
+    - generic [ref=e10] [cursor=pointer]:
+      - generic [ref=e11]: ">_"
+      - generic [ref=e12]: Terminal
+    - generic [ref=e13] [cursor=pointer]:
+      - generic [ref=e14]: 📁
+      - generic [ref=e15]: File Manager
+    - generic [ref=e16] [cursor=pointer]:
+      - generic [ref=e17]: 🤖
+      - generic [ref=e18]: AI Chat
+    - generic [ref=e19] [cursor=pointer]:
+      - generic [ref=e20]: 🌎
+      - generic [ref=e21]: Browser
+    - generic [ref=e22] [cursor=pointer]:
+      - generic [ref=e23]: ⚙
+      - generic [ref=e24]: Settings
+    - generic [ref=e25] [cursor=pointer]:
+      - generic [ref=e26]: 🕐
+      - generic [ref=e27]: Clock
+    - generic [ref=e28] [cursor=pointer]:
+      - generic [ref=e29]: 🎮
+      - generic [ref=e30]: Games
+  - generic "Exit B-OS":
+    - img
+  - generic [ref=e31]:
+    - generic "Start Menu" [ref=e32] [cursor=pointer]:
+      - text: B
+      - generic [ref=e33]: •
+    - generic [ref=e36]:
+      - generic "Backend status" [ref=e37]:
+        - generic [ref=e39]: online
+        - generic: "Backend: Connected"
+      - generic [ref=e40]: 20:47:59
