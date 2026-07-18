@@ -1005,6 +1005,7 @@ if (data.error.indexOf('QWEN_API_KEY') !== -1 || data.error.indexOf('key') !== -
         '<div style="padding:8px 16px;color:#555580;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px;">Settings</div>' +
         '<div class="set-tab" data-tab="appearance" style="padding:8px 16px;cursor:pointer;color:#00f0ff;background:rgba(0,240,255,0.05);border-left:2px solid #00f0ff;">Appearance</div>' +
         '<div class="set-tab" data-tab="system" style="padding:8px 16px;cursor:pointer;color:#9999cc;border-left:2px solid transparent;">System</div>' +
+        '<div class="set-tab" data-tab="updates" style="padding:8px 16px;cursor:pointer;color:#9999cc;border-left:2px solid transparent;">Updates</div>' +
         '<div class="set-tab" data-tab="ai" style="padding:8px 16px;cursor:pointer;color:#9999cc;border-left:2px solid transparent;">AI</div>' +
         '<div class="set-tab" data-tab="about" style="padding:8px 16px;cursor:pointer;color:#9999cc;border-left:2px solid transparent;">About</div>' +
       '</div>' +
@@ -1165,6 +1166,7 @@ if (data.error.indexOf('QWEN_API_KEY') !== -1 || data.error.indexOf('key') !== -
         });
         if (tabName === 'appearance') { contentEl.innerHTML = buildAppearancePanel(settings); bindAppearanceEvents(win, contentEl, settings); }
         else if (tabName === 'system') { contentEl.innerHTML = buildSystemPanel(); checkSystemHealth(win); bindSystemEvents(win, contentEl, settings); }
+        else if (tabName === 'updates') { contentEl.innerHTML = buildUpdatesPanel(); bindUpdatesEvents(win, contentEl); }
         else if (tabName === 'ai') contentEl.innerHTML = buildAIPanel();
         else if (tabName === 'about') contentEl.innerHTML = buildAboutPanel();
       });
@@ -1221,6 +1223,38 @@ if (data.error.indexOf('QWEN_API_KEY') !== -1 || data.error.indexOf('key') !== -
         saveSettings(settings);
       });
     }
+  }
+
+  function bindUpdatesEvents(win, contentEl) {
+    var btn = contentEl.querySelector('#btn-check-updates');
+    var bar = contentEl.querySelector('#update-bar');
+    var progress = contentEl.querySelector('#update-progress');
+    var label = contentEl.querySelector('#update-label');
+    var status = contentEl.querySelector('#update-status');
+    if (!btn || !bar) return;
+    btn.addEventListener('click', function() {
+      btn.disabled = true;
+      btn.textContent = 'Checking...';
+      progress.style.display = 'block';
+      bar.style.width = '0';
+      label.textContent = 'Checking for updates...';
+      var width = 0;
+      var interval = setInterval(function() {
+        width += Math.random() * 30;
+        if (width > 90) width = 90;
+        bar.style.width = width + '%';
+        if (width >= 90) {
+          clearInterval(interval);
+          setTimeout(function() {
+            bar.style.width = '100%';
+            label.textContent = 'Your system is up to date.';
+            btn.textContent = 'Check Again';
+            btn.disabled = false;
+            status.textContent = 'Last checked: ' + new Date().toLocaleString();
+          }, 800);
+        }
+      }, 200);
+    });
   }
 
   function launch() {
