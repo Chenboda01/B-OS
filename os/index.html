@@ -1538,8 +1538,8 @@ html, body {
 
       var dragMove = function(e) {
         if (!dragging) return;
-        win.x = e.clientX - dragOffsetX;
-        win.y = Math.max(0, e.clientY - dragOffsetY);
+        win.x = Math.max(-win.w + 100, Math.min(window.innerWidth - 100, e.clientX - dragOffsetX));
+        win.y = Math.max(0, Math.min(window.innerHeight - 48 - 32, e.clientY - dragOffsetY));
         el.style.left = win.x + 'px';
         el.style.top = win.y + 'px';
       };
@@ -1730,9 +1730,9 @@ html, body {
     { text: '  [OK] Terminal (bsh)', cls: 'ok' },
     { text: '  [OK] Desktop Environment (bde)', cls: 'ok' },
     { text: '', cls: '' },
-    { text: 'Connecting to backend...........', cls: '' },
-    { text: '  [OK] API gateway reachable', cls: 'ok' },
-    { text: '', cls: '' },
+      { text: 'Connecting to backend...........', cls: '' },
+      { text: '  [....] API gateway check pending', cls: 'dim' },
+      { text: '', cls: '' },
     { text: 'Initializing applications.......', cls: '' },
     { text: '  [OK] App registry loaded', cls: 'ok' },
     { text: '', cls: '' },
@@ -1775,6 +1775,20 @@ html, body {
         try { initParticles(); } catch(e) {}
         restoreSettings();
         requestFullscreen();
+        if (typeof API !== 'undefined' && API.health) {
+          API.health().then(function(r) {
+            if (r.status === 'ok') {
+              bootText.querySelector('.dim:last-child').textContent = '  [OK] API gateway reachable';
+              bootText.querySelector('.dim:last-child').className = 'ok';
+            } else {
+              bootText.querySelector('.dim:last-child').textContent = '  [WARN] Backend offline';
+              bootText.querySelector('.dim:last-child').className = 'warn';
+            }
+          }).catch(function() {
+            var last = bootText.querySelector('.dim:last-child');
+            if (last) { last.textContent = '  [WARN] Backend unreachable'; last.className = 'warn'; }
+          });
+        }
       }, 500);
     }
   }
@@ -2046,8 +2060,14 @@ html, body {
       .then(function(data) {
         if (data.current_weather) {
           var code = data.current_weather.weathercode;
-          var icons = ['☀️','🌤️','⛅','☁️','🌧️','⛈️','🌨️','🌫️'];
-          weatherIcon.textContent = icons[Math.min(code, 7)] || '☀️';
+          var icon;
+          if (code === 0) icon = '☀️';
+          else if (code <= 3) icon = '🌤️';
+          else if (code <= 48) icon = '🌫️';
+          else if (code <= 57 || code <= 67 || code <= 82) icon = '🌧️';
+          else if (code <= 77 || code <= 86) icon = '🌨️';
+          else icon = '⛈️';
+          weatherIcon.textContent = icon;
           weatherTemp.textContent = Math.round(data.current_weather.temperature) + '°';
         }
       })
@@ -2118,7 +2138,17 @@ html, body {
     loginError.style.display = 'none';
   }
 
-  document.getElementById('loginBtn').addEventListener('click', function() {
+  async function hashPassword(password, salt) {
+    var data = new TextEncoder().encode(salt + ':' + password);
+    var digest = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(digest)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
+  }
+
+  function generateSalt() {
+    return Array.from(crypto.getRandomValues(new Uint8Array(16))).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
+  }
+
+  document.getElementById('loginBtn').addEventListener('click', async function() {
     var user = document.getElementById('loginUser').value.trim();
     var pass = document.getElementById('loginPass').value.trim();
     if (!user || !pass) {
@@ -2126,12 +2156,27 @@ html, body {
       loginError.style.display = 'block';
       return;
     }
-    var stored = localStorage.getItem('bos-user-' + user);
-    if (stored === pass) {
-      loginError.style.display = 'none';
-      hideLogin();
-    } else {
-      loginError.textContent = 'Invalid password.';
+    try {
+      var stored = JSON.parse(localStorage.getItem('bos-user-' + user));
+      if (stored && stored.hash) {
+        var hash = await hashPassword(pass, stored.salt);
+        if (hash === stored.hash) {
+          loginError.style.display = 'none';
+          hideLogin();
+        } else {
+          loginError.textContent = 'Invalid password.';
+          loginError.style.display = 'block';
+        }
+      } else {
+        /* First time — create account */
+        var salt = generateSalt();
+        var hash = await hashPassword(pass, salt);
+        localStorage.setItem('bos-user-' + user, JSON.stringify({salt: salt, hash: hash}));
+        loginError.style.display = 'none';
+        hideLogin();
+      }
+    } catch(e) {
+      loginError.textContent = 'Login error. Try again.';
       loginError.style.display = 'block';
     }
   });
