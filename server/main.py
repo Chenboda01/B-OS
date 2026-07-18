@@ -194,7 +194,43 @@ def files_read():
             content = f.read()
         return jsonify({"content": content})
     except Exception as e:
-        return jsonify({"content": "", "error": str(e)})
+            return jsonify({"content": "", "error": str(e)})
+
+
+@app.route("/api/files/operation", methods=["POST"])
+def files_operation():
+    data = request.get_json(silent=True) or {}
+    action = data.get("action", "")
+    path = sanitize_path(data.get("path", ""))
+    new_path = sanitize_path(data.get("newPath", ""))
+    abspath = os.path.expanduser(path)
+
+    if not path or not action:
+        return jsonify({"error": "Missing path or action"})
+    if not is_path_allowed(abspath):
+        return jsonify({"error": "Access denied"})
+
+    try:
+        if action == "delete":
+            if os.path.isdir(abspath):
+                import shutil
+                shutil.rmtree(abspath)
+            else:
+                os.remove(abspath)
+            return jsonify({"success": True})
+        elif action == "rename":
+            abs_new = os.path.expanduser(new_path)
+            if not is_path_allowed(abs_new):
+                return jsonify({"error": "Access denied for target"})
+            os.rename(abspath, abs_new)
+            return jsonify({"success": True})
+        elif action == "mkdir":
+            os.makedirs(abspath, exist_ok=True)
+            return jsonify({"success": True})
+        else:
+            return jsonify({"error": "Unknown action: " + action})
+    except Exception as e:
+        return jsonify({"error": str(e)})
 
 
 # ─── AI Chat (QWEN Proxy) ────────────────────────────────────────

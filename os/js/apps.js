@@ -940,6 +940,22 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
       var row = e.target.closest('.fm-file-row');
       if (row) row.style.background = '';
     });
+
+    win.querySelector('#fm-filelist').addEventListener('contextmenu', function(e) {
+      var row = e.target.closest('.fm-file-row');
+      if (!row) return;
+      e.preventDefault();
+      var name = row.dataset.name;
+      var fpath = currentPath === '/' ? '/' + name : currentPath + '/' + name;
+      var action = confirm('File: '+name+'\n\n[OK] = Delete\n[Cancel] to skip');
+      if (action) {
+        fetch('http://localhost:8765/api/files/operation', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({action:'delete', path:fpath})
+        }).then(function() { navigate(currentPath, win); })
+          .catch(function() { showToast('File Manager','Delete failed'); });
+      }
+    });
   }
 
   function launch() {

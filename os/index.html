@@ -1141,6 +1141,10 @@ html, body {
 </div>
 
 <div id="loginOverlay">
+  <div style="text-align:center;margin-bottom:32px;">
+    <div id="lockTime" style="font-size:48px;color:#fff;font-weight:200;font-family:monospace;"></div>
+    <div id="lockDate" style="font-size:14px;color:#999;margin-top:4px;"></div>
+  </div>
   <div id="loginBox">
     <div style="text-align:center;margin-bottom:24px;">
       <div style="font-size:48px;">☁️</div>
@@ -1168,10 +1172,12 @@ html, body {
   </div>
   <div id="taskbarWindows"></div>
   <div id="systemTray">
+      <div id="trayNetwork" title="Network" style="display:flex;align-items:center;padding:2px 6px;border-radius:4px;color:#ccc;font-size:13px;">📶</div>
       <div id="trayVolume" title="Volume">
         <span id="volIcon">&#128266;</span>
         <div id="volSlider"><input id="volRange" type="range" min="0" max="100" value="70"></div>
       </div>
+      <div id="trayBattery" title="Battery" style="display:flex;align-items:center;padding:2px 6px;border-radius:4px;color:#ccc;font-size:12px;">🔋 100%</div>
       <div id="trayWeather" title="Weather">
         <span id="weatherIcon">☀️</span>
         <span id="weatherTemp">72°</span>
@@ -2105,6 +2111,9 @@ html, body {
 
   function showLogin(msg) {
     loginMsg.textContent = msg || 'Sign in to your account';
+    var now = new Date();
+    document.getElementById('lockTime').textContent = now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+    document.getElementById('lockDate').textContent = now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
     loginOverlay.classList.add('active');
     document.getElementById('loginUser').focus();
   }
