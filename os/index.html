@@ -1153,10 +1153,7 @@ html, body {
     </div>
     <input id="loginUser" type="text" placeholder="Username" style="width:100%;padding:10px;margin-bottom:8px;background:#0a0a1a;border:1px solid #181848;color:#e8eaff;border-radius:4px;outline:none;font-size:13px;">
     <input id="loginPass" type="password" placeholder="Password" style="width:100%;padding:10px;margin-bottom:12px;background:#0a0a1a;border:1px solid #181848;color:#e8eaff;border-radius:4px;outline:none;font-size:13px;">
-    <button id="loginBtn" style="width:100%;padding:10px;background:#0078d4;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:13px;font-weight:bold;">Sign In</button>
-    <div style="text-align:center;margin-top:12px;">
-      <span id="signupLink" style="color:#0078d4;cursor:pointer;font-size:11px;">Create an account</span>
-    </div>
+    <button id="loginBtn" style="width:100%;padding:10px;background:#0078d4;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:13px;font-weight:bold;">Unlock</button>
     <div id="loginError" style="color:#ff3355;font-size:11px;margin-top:8px;text-align:center;display:none;"></div>
   </div>
 </div>
@@ -2103,13 +2100,10 @@ html, body {
      ───────────────────────────────────────────────── */
   var loginOverlay = document.getElementById('loginOverlay');
   var loginMsg = document.getElementById('loginMsg');
-  var loginBtn = document.getElementById('loginBtn');
   var loginError = document.getElementById('loginError');
-  var signupLink = document.getElementById('signupLink');
-  var isSignup = false;
 
   function showLogin(msg) {
-    loginMsg.textContent = msg || 'Sign in to your account';
+    loginMsg.textContent = msg || 'Sign in to unlock';
     var now = new Date();
     document.getElementById('lockTime').textContent = now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
     document.getElementById('lockDate').textContent = now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
@@ -2124,52 +2118,26 @@ html, body {
     loginError.style.display = 'none';
   }
 
-  loginBtn.addEventListener('click', function() {
+  document.getElementById('loginBtn').addEventListener('click', function() {
     var user = document.getElementById('loginUser').value.trim();
     var pass = document.getElementById('loginPass').value.trim();
     if (!user || !pass) {
-      loginError.textContent = 'Please enter username and password.';
+      loginError.textContent = 'Enter username and password.';
       loginError.style.display = 'block';
       return;
     }
-    if (isSignup) {
-      var existing = localStorage.getItem('bos-user-' + user);
-      if (existing) {
-        loginError.textContent = 'Username already exists.';
-        loginError.style.display = 'block';
-        return;
-      }
-      localStorage.setItem('bos-user-' + user, pass);
+    var stored = localStorage.getItem('bos-user-' + user);
+    if (stored === pass) {
       loginError.style.display = 'none';
       hideLogin();
     } else {
-      var stored = localStorage.getItem('bos-user-' + user);
-      if (stored === pass) {
-        loginError.style.display = 'none';
-        hideLogin();
-      } else {
-        loginError.textContent = 'Invalid username or password.';
-        loginError.style.display = 'block';
-      }
+      loginError.textContent = 'Invalid password.';
+      loginError.style.display = 'block';
     }
   });
 
   document.getElementById('loginPass').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') loginBtn.click();
-  });
-
-  signupLink.addEventListener('click', function() {
-    isSignup = !isSignup;
-    if (isSignup) {
-      loginMsg.textContent = 'Create a B-CLOUD account';
-      loginBtn.textContent = 'Sign Up';
-      signupLink.textContent = 'Already have an account? Sign in';
-    } else {
-      loginMsg.textContent = 'Sign in to your account';
-      loginBtn.textContent = 'Sign In';
-      signupLink.textContent = 'Create an account';
-    }
-    loginError.style.display = 'none';
+    if (e.key === 'Enter') document.getElementById('loginBtn').click();
   });
 
   /* Remove old document click handler (now combined with power menu) */
