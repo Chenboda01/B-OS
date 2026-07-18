@@ -1141,6 +1141,12 @@ html, body {
           el.remove();
         });
       }
+      /* Remove document-level event listeners */
+      if (win._docListeners) {
+        win._docListeners.forEach(function(l) {
+          document.removeEventListener(l.type, l.fn);
+        });
+      }
       if (win.onClose) win.onClose(id);
       delete this._windows[id];
       if (this._focusedId === id) {
@@ -1321,6 +1327,7 @@ html, body {
     _attachWindowEvents: function(id, el) {
       var self = this;
       var win = this._windows[id];
+      win._docListeners = [];
 
       /* Click to focus */
       el.addEventListener('mousedown', function(e) {
@@ -1365,20 +1372,23 @@ html, body {
         e.preventDefault();
       });
 
-      document.addEventListener('mousemove', function(e) {
+      var dragMove = function(e) {
         if (!dragging) return;
         win.x = e.clientX - dragOffsetX;
         win.y = Math.max(0, e.clientY - dragOffsetY);
         el.style.left = win.x + 'px';
         el.style.top = win.y + 'px';
-      });
-
-      document.addEventListener('mouseup', function() {
+      };
+      var dragUp = function() {
         if (dragging) {
           dragging = false;
           document.body.style.cursor = '';
         }
-      });
+      };
+      document.addEventListener('mousemove', dragMove);
+      document.addEventListener('mouseup', dragUp);
+      win._docListeners.push({ type: 'mousemove', fn: dragMove });
+      win._docListeners.push({ type: 'mouseup', fn: dragUp });
 
       /* Resizing */
       var resizeHandles = el.querySelectorAll('.win-resize');
@@ -1400,7 +1410,7 @@ html, body {
           e.stopPropagation();
         });
 
-        document.addEventListener('mousemove', function(e) {
+        var resizeMove = function(e) {
           if (!resizing) return;
           var dx = e.clientX - startX;
           var dy = e.clientY - startY;
@@ -1426,11 +1436,14 @@ html, body {
           el.style.top = win.y + 'px';
           el.style.width = win.w + 'px';
           el.style.height = win.h + 'px';
-        });
-
-        document.addEventListener('mouseup', function() {
+        };
+        var resizeUp = function() {
           resizing = false;
-        });
+        };
+        document.addEventListener('mousemove', resizeMove);
+        document.addEventListener('mouseup', resizeUp);
+        win._docListeners.push({ type: 'mousemove', fn: resizeMove });
+        win._docListeners.push({ type: 'mouseup', fn: resizeUp });
       });
     },
 
@@ -1445,7 +1458,7 @@ html, body {
         icon.innerHTML =
           '<div class="icon-glyph">' + (app.icon || '&#9632;') + '</div>' +
           '<div class="icon-label">' + self._escHtml(app.name) + '</div>';
-        icon.addEventListener('dblclick', function() {
+        icon.addEventListener('click', function() {
           if (app.launch) app.launch();
         });
         container.appendChild(icon);
@@ -1595,7 +1608,7 @@ html, body {
         document.getElementById('desktop').classList.add('visible');
         document.getElementById('taskbar').classList.add('visible');
         document.getElementById('exitButton').classList.add('visible');
-        initParticles();
+        try { initParticles(); } catch(e) {}
         restoreSettings();
         requestFullscreen();
       }, 500);
@@ -1661,11 +1674,6 @@ html, body {
     } else if (el.webkitRequestFullscreen) {
       el.webkitRequestFullscreen();
     }
-    document.addEventListener('click', function fsClick() {
-      document.removeEventListener('click', fsClick);
-      if (el.requestFullscreen) el.requestFullscreen().catch(function(){});
-      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-    }, { once: true });
   }
 
   /* ─────────────────────────────────────────────────
