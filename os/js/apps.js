@@ -1370,8 +1370,14 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
       '</div>' +
       '<div style="margin-bottom:16px;">' +
         '<div style="color:#555580;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;">API Endpoint</div>' +
-        '<div style="color:#9999cc;padding:8px 12px;border:1px solid #181848;border-radius:2px;background:#050510;">http://localhost:8765/api/ai/chat</div>' +
-      '</div>' +
+          '<div style="color:#9999cc;padding:8px 12px;border:1px solid #181848;border-radius:2px;background:#050510;">http://localhost:8765/api/ai/chat</div>' +
+        '</div>' +
+        '<div style="margin-bottom:16px;">' +
+          '<div style="color:#555580;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;">API Key</div>' +
+          '<input id="set-apikey" type="text" placeholder="Enter QWEN API key..." style="width:100%;background:#050510;border:1px solid #181848;color:#00f0ff;padding:8px 12px;border-radius:2px;font-family:monospace;font-size:11px;outline:none;" />' +
+          '<button id="btn-save-key" style="margin-top:8px;background:#0078d4;color:#fff;border:none;padding:6px 16px;border-radius:4px;cursor:pointer;font-size:11px;">Save Key</button>' +
+          '<span id="key-status" style="margin-left:8px;font-size:11px;"></span>' +
+        '</div>' +
       '<div style="color:#555580;font-size:11px;line-height:1.6;">' +
         'Model: QWEN (via compatible API)<br>' +
         'The AI assistant sends your messages and conversation history to the backend for processing.' +
@@ -1420,7 +1426,7 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
         if (tabName === 'appearance') { contentEl.innerHTML = buildAppearancePanel(settings); bindAppearanceEvents(win, contentEl, settings); }
         else if (tabName === 'system') { contentEl.innerHTML = buildSystemPanel(); checkSystemHealth(win); bindSystemEvents(win, contentEl, settings); }
         else if (tabName === 'updates') { contentEl.innerHTML = buildUpdatesPanel(); bindUpdatesEvents(win, contentEl); }
-        else if (tabName === 'ai') contentEl.innerHTML = buildAIPanel();
+        else if (tabName === 'ai') { contentEl.innerHTML = buildAIPanel(); bindAIEvents(win, contentEl); }
         else if (tabName === 'about') contentEl.innerHTML = buildAboutPanel();
       });
     });
@@ -1959,4 +1965,92 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
   function setupEvents(win) {}
   function launch() { var w = BOS.createWindow({title:'Music',icon:'🎵',width:350,height:300,content:createUI()}); setupEvents(w); }
   BOS.registerApp({ id:'music', name:'Music', icon:'🎵', category:'entertainment', launch:launch });
+})();
+
+(function() {
+  function createUI() {
+    return '<div class="bos-app" style="padding:24px;text-align:center;background:#050510;color:#e8eaff;height:100%;overflow-y:auto;">' +
+      '<div style="width:64px;height:64px;border-radius:50%;background:#0078d4;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:28px;">👤</div>' +
+      '<div style="font-size:16px;font-weight:bold;margin-bottom:4px;">User</div>' +
+      '<div style="color:#555;font-size:11px;margin-bottom:20px;">Administrator</div>' +
+      '<div style="text-align:left;padding:12px;background:#0a0a1a;border-radius:4px;margin-bottom:8px;">' +
+        '<div style="color:#555;font-size:10px;">HOSTNAME</div><div style="font-size:13px;">b-os.local</div></div>' +
+      '<div style="text-align:left;padding:12px;background:#0a0a1a;border-radius:4px;margin-bottom:8px;">' +
+        '<div style="color:#555;font-size:10px;">BROWSER</div><div style="font-size:13px;">'+(navigator.userAgent.split(') ').pop()||'Unknown')+'</div></div>' +
+      '<button style="margin-top:12px;background:#ff3355;color:#fff;border:none;padding:8px 24px;border-radius:4px;cursor:pointer;font-size:12px;" onclick="showLogin(\'Signed out\')">Sign Out</button>' +
+    '</div>';
+  }
+  function setupEvents(win) {}
+  function launch() { var w = BOS.createWindow({title:'Profile',icon:'👤',width:320,height:360,content:createUI()}); setupEvents(w); }
+  BOS.registerApp({ id:'profile', name:'Profile', icon:'👤', category:'system', launch:launch });
+})();
+
+(function() {
+  function launch() {
+    BOS.createWindow({title:'Screenshot saved!',icon:'📸',width:300,height:180,
+      content:'<div class="bos-app" style="display:flex;align-items:center;justify-content:center;height:100%;text-align:center;background:#050510;color:#e8eaff;font-size:12px;">'+
+        '<div>📸<br><br>Screenshot copied!<br><span style="color:#555;">Press Ctrl+Shift+S to capture</span></div></div>'
+    });
+  }
+  BOS.registerApp({ id:'screenshot', name:'Screenshot', icon:'📸', category:'utility', launch:launch });
+})();
+
+(function() {
+  var apps = [
+    {n:'Terminal',i:'>_',d:'Command-line interface',c:'system'},
+    {n:'File Manager',i:'📁',d:'Browse files',c:'system'},
+    {n:'Browser',i:'🌎',d:'Open websites',c:'network'},
+    {n:'AI Chat',i:'🤖',d:'QWEN AI assistant',c:'ai'},
+    {n:'Settings',i:'⚙',d:'Configure B-OS',c:'system'},
+    {n:'Calculator',i:'🔢',d:'Arithmetic',c:'utility'},
+    {n:'Notepad',i:'📝',d:'Text editor',c:'utility'},
+    {n:'Paint',i:'🎨',d:'Draw freely',c:'utility'},
+    {n:'Task Manager',i:'📊',d:'Monitor system',c:'system'},
+    {n:'Clock',i:'🕐',d:'Time & date',c:'utility'},
+    {n:'Games',i:'🎮',d:'Coming soon',c:'entertainment'},
+    {n:'Music',i:'🎵',d:'Media player',c:'entertainment'}
+  ];
+  function createUI() {
+    var h = '<div class="bos-app" style="padding:16px;background:#050510;color:#e8eaff;height:100%;overflow-y:auto;font-size:12px;">'+
+      '<div style="font-weight:bold;font-size:14px;margin-bottom:4px;">B-OS App Store</div>'+
+      '<div style="color:#555;font-size:10px;margin-bottom:16px;">'+apps.length+' apps available</div>';
+    apps.forEach(function(a){
+      h += '<div style="display:flex;align-items:center;padding:10px;margin-bottom:4px;background:#0a0a1a;border-radius:4px;gap:12px;">'+
+        '<div style="font-size:24px;">'+a.i+'</div>'+
+        '<div style="flex:1;"><div style="font-weight:bold;">'+a.n+'</div><div style="color:#555;font-size:10px;">'+a.d+'</div></div>'+
+        '<button data-app="'+a.n.toLowerCase()+'" style="background:#0078d4;color:#fff;border:none;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:10px;">Open</button></div>';
+    });
+    return h + '</div>';
+  }
+  function setupEvents(win) {
+    win.querySelectorAll('button').forEach(function(b){
+      b.addEventListener('click',function(){
+        var id = this.dataset.app.replace(/\s/g,'');
+        BOS._apps.forEach(function(app){ if(app.id===id||app.name.toLowerCase()===this.dataset.app) app.launch(); },this);
+      });
+    });
+  }
+  function launch() { var w = BOS.createWindow({title:'App Store',icon:'🏪',width:400,height:480,content:createUI()}); setupEvents(w); }
+  BOS.registerApp({ id:'appstore', name:'App Store', icon:'🏪', category:'system', launch:launch });
+})();
+
+(function() {
+  function createUI() {
+    return '<div class="bos-app" style="padding:16px;background:#050510;color:#e8eaff;height:100%;overflow-y:auto;font-size:12px;">'+
+      '<div style="font-weight:bold;font-size:14px;margin-bottom:16px;">System Monitor</div>'+
+      '<div style="padding:8px;background:#0a0a1a;border-radius:4px;margin-bottom:8px;">'+
+        '<div style="display:flex;justify-content:space-between;"><span>CPU Cores</span><span style="color:#00f0ff;">'+navigator.hardwareConcurrency+'</span></div></div>'+
+      '<div style="padding:8px;background:#0a0a1a;border-radius:4px;margin-bottom:8px;">'+
+        '<div style="display:flex;justify-content:space-between;"><span>Memory</span><span style="color:#00f0ff;">'+(navigator.deviceMemory||'?')+' GB</span></div></div>'+
+      '<div style="padding:8px;background:#0a0a1a;border-radius:4px;margin-bottom:8px;">'+
+        '<div style="display:flex;justify-content:space-between;"><span>Online</span><span style="color:#00ff88;">'+navigator.onLine+'</span></div></div>'+
+      '<div style="padding:8px;background:#0a0a1a;border-radius:4px;margin-bottom:8px;">'+
+        '<div style="display:flex;justify-content:space-between;"><span>Screen</span><span style="color:#00f0ff;">'+screen.width+'x'+screen.height+'</span></div></div>'+
+      '<div style="padding:8px;background:#0a0a1a;border-radius:4px;margin-bottom:8px;">'+
+        '<div style="display:flex;justify-content:space-between;"><span>Platform</span><span style="color:#999;font-size:10px;">'+navigator.platform+'</span></div></div>'+
+    '</div>';
+  }
+  function setupEvents(win) {}
+  function launch() { var w = BOS.createWindow({title:'System Monitor',icon:'📈',width:360,height:320,content:createUI()}); setupEvents(w); }
+  BOS.registerApp({ id:'sysmonitor', name:'System Monitor', icon:'📈', category:'system', launch:launch });
 })();

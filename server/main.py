@@ -236,13 +236,57 @@ def files_operation():
 # ─── AI Chat (QWEN Proxy) ────────────────────────────────────────
 
 QWEN_API_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
+CONFIG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+
+
+def get_qwen_key():
+    """Get QWEN API key from env or config file."""
+    key = os.environ.get("QWEN_API_KEY", "")
+    if key:
+        return key
+    try:
+        if os.path.exists(CONFIG_FILE):
+            with open(CONFIG_FILE) as f:
+                cfg = json.load(f)
+                return cfg.get("qwen_api_key", "")
+    except Exception:
+        pass
+    return ""
+
+
+@app.route("/api/ai/config", methods=["POST"])
+def ai_config():
+    """Save QWEN API key to config file."""
+    data = request.get_json(silent=True) or {}
+    key = data.get("key", "").strip()
+    cfg = {}
+    try:
+        if os.path.exists(CONFIG_FILE):
+            with open(CONFIG_FILE) as f:
+                cfg = json.load(f)
+    except Exception:
+        pass
+    cfg["qwen_api_key"] = key
+    try:
+        with open(CONFIG_FILE, "w") as f:
+            json.dump(cfg, f)
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+
+@app.route("/api/ai/config", methods=["GET"])
+def ai_config_get():
+    """Check if API key is configured."""
+    key = get_qwen_key()
+    return jsonify({"configured": bool(key)})
 
 
 @app.route("/api/ai/chat", methods=["POST"])
 def ai_chat():
-    api_key = os.environ.get("QWEN_API_KEY", "")
+    api_key = get_qwen_key()
     if not api_key:
-        return jsonify({"reply": "B-OS AI requires a QWEN API key. Get a free key at dashscope.console.aliyun.com, then set: export QWEN_API_KEY=your_key && python main.py"})
+        return jsonify({"reply": "B-OS AI requires a QWEN API key. Get a free key at dashscope.console.aliyun.com. Enter it in Settings > AI."})
 
     data = request.get_json(silent=True) or {}
     message = data.get("message", "").strip()
