@@ -967,9 +967,9 @@ if (data.error.indexOf('QWEN_API_KEY') !== -1 || data.error.indexOf('key') !== -
   function loadSettings() {
     try {
       var raw = localStorage.getItem('bos-settings');
-      return raw ? JSON.parse(raw) : { theme: 'cyberpunk', fontSize: 13, wallpaper: 'particles', serverUrl: 'http://localhost:8765' };
+      return raw ? JSON.parse(raw) : { theme: 'windows', fontSize: 13, wallpaper: 'particles', serverUrl: 'http://localhost:8765' };
     } catch(e) {
-      return { theme: 'cyberpunk', fontSize: 13, wallpaper: 'particles', serverUrl: 'http://localhost:8765' };
+      return { theme: 'windows', fontSize: 13, wallpaper: 'particles', serverUrl: 'http://localhost:8765' };
     }
   }
 

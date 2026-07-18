@@ -214,7 +214,7 @@ html, body {
 #desktopWallpaper {
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, #0d3b66 0%, #142850 40%, #1a1a2e 100%);
+  background: linear-gradient(180deg, #0d3b66 0%, #142850 40%, #0a1628 100%);
 }
 
 #desktopWallpaper.wp-particles {
@@ -765,10 +765,94 @@ html, body {
 #systemTray {
   display: flex;
   align-items: center;
-  gap: var(--sp-3);
+  gap: 10px;
   flex-shrink: 0;
-  padding-left: var(--sp-2);
+  padding-left: 8px;
 }
+
+#taskbarSearch {
+  display: flex;
+  align-items: center;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px;
+  padding: 2px 8px;
+  margin: 0 8px;
+  width: 200px;
+  transition: border-color 0.2s, background 0.2s;
+}
+#taskbarSearch:focus-within { border-color: #0078d4; background: rgba(255,255,255,0.12); }
+#searchInput {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 12px;
+  outline: none;
+  width: 100%;
+  font-family: inherit;
+}
+#searchInput::placeholder { color: #888; }
+
+#trayWeather {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  color: #ccc;
+}
+#trayWeather:hover { background: rgba(255,255,255,0.06); }
+
+#trayPower {
+  position: relative;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #ccc;
+}
+#trayPower:hover { background: rgba(255,255,255,0.06); }
+
+#powerMenu {
+  display: none;
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  margin-bottom: 8px;
+  background: #1e1e2e;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  padding: 4px;
+  min-width: 150px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  z-index: 2000;
+}
+#powerMenu.open { display: block; }
+.power-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #ccc;
+  transition: background 0.15s;
+}
+.power-item:hover { background: rgba(255,255,255,0.08); }
+.power-item[data-action="shutdown"]:hover { color: #ff4444; }
+
+#shutdownOverlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: #000;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 18px;
+}
+#shutdownOverlay.active { display: flex; }
 
 #trayClock {
   font-size: 12px;
@@ -1002,21 +1086,41 @@ html, body {
   </div>
 </div>
 
+<div id="shutdownOverlay">
+  <div style="font-size:48px;margin-bottom:16px;">⏻</div>
+  <div id="shutdownText">Shutting down...</div>
+</div>
+
 <!-- ═══════════════════════════════════════════════════
      TASKBAR
      ═══════════════════════════════════════════════════ -->
 <div id="taskbar">
-  <div id="startBtn" title="Start Menu">B<span style="color:var(--cyan);">&#9679;</span></div>
-  <div class="taskbar-sep"></div>
+  <div id="startBtn" title="Start Menu">&#8862;</div>
+  <div id="taskbarSearch">
+    <span style="color:#999;margin-right:4px;">&#128269;</span>
+    <input id="searchInput" type="text" placeholder="Type to search..." autocomplete="off">
+  </div>
   <div id="taskbarWindows"></div>
-  <div class="taskbar-sep"></div>
   <div id="systemTray">
+    <div id="trayWeather" title="Weather">
+      <span id="weatherIcon">☀️</span>
+      <span id="weatherTemp">72°</span>
+    </div>
     <div id="trayBackend" title="Backend status">
       <div id="backendDot"></div>
       <span id="backendLabel">offline</span>
       <div id="backendTooltip">Backend: checking...</div>
     </div>
     <div id="trayClock">00:00:00</div>
+    <div id="trayPower" title="Power">
+      <span style="font-size:14px;">&#9210;</span>
+      <div id="powerMenu">
+        <div class="power-item" data-action="lock">🔒 Lock</div>
+        <div class="power-item" data-action="sleep">😴 Sleep</div>
+        <div class="power-item" data-action="restart">🔄 Restart</div>
+        <div class="power-item" data-action="shutdown">⏻ Shut Down</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1800,12 +1904,7 @@ html, body {
     BOS.toggleStartMenu();
   });
 
-  /* Close start menu on outside click */
-  document.addEventListener('click', function(e) {
-    if (!e.target.closest('#startMenu') && !e.target.closest('#startBtn')) {
-      BOS.closeStartMenu();
-    }
-  });
+  /* Close start menu on outside click — now handled in power menu click handler */
 
   /* ─────────────────────────────────────────────────
      EXIT BUTTON
@@ -1827,6 +1926,78 @@ html, body {
       this.classList.remove('active');
     }
   });
+
+  /* ─────────────────────────────────────────────────
+     TASKBAR SEARCH
+     ───────────────────────────────────────────────── */
+  var searchInput = document.getElementById('searchInput');
+  searchInput.addEventListener('input', function() {
+    var q = this.value.toLowerCase();
+    var apps = document.querySelectorAll('.desktop-icon, .start-menu-app');
+    apps.forEach(function(app) {
+      var name = (app.querySelector('.icon-label, .sma-name') || {}).textContent || '';
+      app.style.display = name.toLowerCase().includes(q) ? '' : 'none';
+    });
+  });
+
+  /* ─────────────────────────────────────────────────
+     WEATHER WIDGET
+     ───────────────────────────────────────────────── */
+  var weatherIcon = document.getElementById('weatherIcon');
+  var weatherTemp = document.getElementById('weatherTemp');
+  if (navigator.onLine) {
+    fetch('https://wttr.in/?format=%C+%t')
+      .then(function(r) { return r.text(); })
+      .then(function(data) {
+        var parts = data.trim().split(' ');
+        if (parts.length >= 2) {
+          weatherIcon.textContent = parts[0];
+          weatherTemp.textContent = parts[1];
+        }
+      })
+      .catch(function() {});
+  }
+
+  /* ─────────────────────────────────────────────────
+     POWER MENU
+     ───────────────────────────────────────────────── */
+  var powerBtn = document.getElementById('trayPower');
+  var powerMenu = document.getElementById('powerMenu');
+  powerBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    powerMenu.classList.toggle('open');
+  });
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('#trayPower')) powerMenu.classList.remove('open');
+    if (!e.target.closest('#startMenu') && !e.target.closest('#startBtn')) {
+      BOS.closeStartMenu();
+    }
+  });
+
+  powerMenu.querySelectorAll('.power-item').forEach(function(item) {
+    item.addEventListener('click', function() {
+      var action = this.dataset.action;
+      powerMenu.classList.remove('open');
+      if (action === 'lock') {
+        document.getElementById('shutdownOverlay').classList.add('active');
+        document.getElementById('shutdownText').textContent = 'Locked';
+        setTimeout(function() { document.getElementById('shutdownOverlay').classList.remove('active'); }, 1500);
+      } else if (action === 'sleep') {
+        document.getElementById('shutdownOverlay').classList.add('active');
+        document.getElementById('shutdownText').textContent = 'Sleeping...';
+      } else if (action === 'restart') {
+        document.getElementById('shutdownOverlay').classList.add('active');
+        document.getElementById('shutdownText').textContent = 'Restarting...';
+        setTimeout(function() { location.reload(); }, 2000);
+      } else if (action === 'shutdown') {
+        document.getElementById('shutdownOverlay').classList.add('active');
+        document.getElementById('shutdownText').textContent = 'Shutting down...';
+        setTimeout(function() { document.getElementById('shutdownOverlay').style.opacity = '0'; }, 2000);
+      }
+    });
+  });
+
+  /* Remove old document click handler (now combined with power menu) */
 
   /* ─────────────────────────────────────────────────
      KEYBOARD SHORTCUTS
