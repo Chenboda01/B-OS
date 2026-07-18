@@ -397,7 +397,7 @@
   ];
 
   function fileIcon(name, type) {
-    if (type === 'directory') return '<span style="color:#00f0ff;">📁</span>';
+    if (type === 'dir') return '<span style="color:#00f0ff;">📁</span>';
     var ext = name.split('.').pop().toLowerCase();
     if (['txt','md','log','csv'].indexOf(ext) !== -1) return '<span style="color:#ffaa00;">📄</span>';
     if (['js','html','css','json','py','rb','go','rs','ts','jsx','tsx'].indexOf(ext) !== -1) return '<span style="color:#00ff88;">⟨/⟩</span>';
@@ -485,8 +485,8 @@
 
   function renderFileList(container, entries, statusEl) {
     var sorted = entries.slice().sort(function(a, b) {
-      if (a.type === 'directory' && b.type !== 'directory') return -1;
-      if (a.type !== 'directory' && b.type === 'directory') return 1;
+if (a.type === 'dir' && b.type !== 'dir') return -1;
+if (a.type !== 'dir' && b.type === 'dir') return 1;
       var cmp = 0;
       if (sortBy === 'name') cmp = a.name.localeCompare(b.name);
       else if (sortBy === 'size') cmp = (a.size||0) - (b.size||0);
@@ -527,7 +527,7 @@
     html += '</tbody></table>';
     container.innerHTML = html;
     if (statusEl) {
-      var dirs = entries.filter(function(e) { return e.type === 'directory'; }).length;
+      var dirs = entries.filter(function(e) { return e.type === 'dir'; }).length;
       var files = entries.length - dirs;
       statusEl.textContent = dirs + ' folder' + (dirs !== 1 ? 's' : '') + ', ' + files + ' file' + (files !== 1 ? 's' : '');
     }
@@ -667,7 +667,7 @@
       if (row) {
         var name = row.dataset.name;
         var type = row.dataset.type;
-        if (type === 'directory') {
+        if (type === 'dir') {
           var newPath = currentPath === '/' ? '/' + name : currentPath + '/' + name;
           navigate(newPath, win);
         } else {
@@ -811,8 +811,8 @@
       isThinking = false;
       if (data.error) {
         addMessage(container, 'assistant', 'Error: ' + data.error);
-        if (data.error.indexOf('QWEN_API_KEY') !== -1 || data.error.indexOf('key') !== -1) {
-          addMessage(container, 'assistant', '💡 Hint: Set the QWEN_API_KEY environment variable on the server, then restart the backend.');
+if (data.error.indexOf('QWEN_API_KEY') !== -1 || data.error.indexOf('key') !== -1) {
+            addMessage(container, 'assistant', '💡 QWEN API key not set. Get a free key at dashscope.console.aliyun.com, then run: export QWEN_API_KEY=your_key_on_server');
         }
       } else {
         addMessage(container, 'assistant', data.reply || '(no response)');
@@ -901,15 +901,14 @@
         '<button id="br-back" title="Back" style="background:none;border:1px solid #181848;color:#9999cc;padding:4px 8px;border-radius:2px;cursor:pointer;">◀</button>' +
         '<button id="br-fwd" title="Forward" style="background:none;border:1px solid #181848;color:#9999cc;padding:4px 8px;border-radius:2px;cursor:pointer;">▶</button>' +
         '<button id="br-refresh" title="Refresh" style="background:none;border:1px solid #181848;color:#9999cc;padding:4px 8px;border-radius:2px;cursor:pointer;">↻</button>' +
-        '<input id="br-url" type="text" value="https://www.google.com" ' +
+        '<input id="br-url" type="text" value="https://duckduckgo.com" ' +
           'style="flex:1;min-width:200px;background:#050510;border:1px solid #181848;color:#00f0ff;padding:4px 10px;border-radius:2px;font-family:var(--font-mono,monospace);font-size:12px;outline:none;" />' +
         '<button id="br-go" style="background:#00f0ff;color:#050510;border:none;padding:4px 12px;border-radius:2px;cursor:pointer;font-weight:bold;font-size:12px;">Go</button>' +
       '</div>' +
       /* Quick links */
       '<div style="display:flex;gap:6px;padding:6px 10px;background:#050510;border-bottom:1px solid rgba(0,240,255,0.05);flex-wrap:wrap;">' +
-        '<span class="br-quick" data-url="https://www.google.com" style="cursor:pointer;color:#555580;font-size:11px;padding:2px 8px;border:1px solid #181848;border-radius:2px;transition:all 0.2s;">Google</span>' +
-        '<span class="br-quick" data-url="https://www.bing.com" style="cursor:pointer;color:#555580;font-size:11px;padding:2px 8px;border:1px solid #181848;border-radius:2px;transition:all 0.2s;">Bing</span>' +
         '<span class="br-quick" data-url="https://duckduckgo.com" style="cursor:pointer;color:#555580;font-size:11px;padding:2px 8px;border:1px solid #181848;border-radius:2px;transition:all 0.2s;">DuckDuckGo</span>' +
+        '<span class="br-quick" data-url="https://www.bing.com" style="cursor:pointer;color:#555580;font-size:11px;padding:2px 8px;border:1px solid #181848;border-radius:2px;transition:all 0.2s;">Bing</span>' +
         '<span class="br-quick" data-url="https://github.com" style="cursor:pointer;color:#555580;font-size:11px;padding:2px 8px;border:1px solid #181848;border-radius:2px;transition:all 0.2s;">GitHub</span>' +
       '</div>' +
       /* Loading indicator */
@@ -918,9 +917,9 @@
       '</div>' +
       /* Iframe */
       '<div style="flex:1;position:relative;">' +
-        '<iframe id="br-frame" src="https://www.google.com" ' +
+        '<iframe id="br-frame" src="https://duckduckgo.com" ' +
           'style="width:100%;height:100%;border:none;background:#fff;" ' +
-          'sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-top-navigation" ' +
+          'sandbox="allow-same-origin allow-scripts allow-forms" ' +
           'loading="lazy"></iframe>' +
       '</div>' +
       /* Inject loading animation */
@@ -1043,6 +1042,7 @@
 // ═══════════════════════════════════════════════════════════════
 (function() {
   var THEMES = {
+    windows:   { accent: '#0078d4', secondary: '#005a9e' },
     cyberpunk: { accent: '#00f0ff', secondary: '#ff00ff' },
     aurora:    { accent: '#00ff88', secondary: '#ffaa00' },
     dark:      { accent: '#9999cc', secondary: '#555580' }
@@ -1059,12 +1059,6 @@
 
   function saveSettings(s) {
     try { localStorage.setItem('bos-settings', JSON.stringify(s)); } catch(e) {}
-  }
-
-  function applyTheme(settings) {
-    var t = THEMES[settings.theme] || THEMES.cyberpunk;
-    document.documentElement.style.setProperty('--cyan', t.accent);
-    document.documentElement.style.setProperty('--magenta', t.secondary);
   }
 
   function esc(s) {
@@ -1183,6 +1177,7 @@
         '</div>' +
         '<div style="color:#555580;font-size:11px;line-height:1.6;">' +
           'The API key is set via the <span style="color:#00f0ff;">QWEN_API_KEY</span> environment variable on the server.<br>' +
+          'Get a free key: <span style="color:#00ff88;">dashscope.console.aliyun.com</span> (2M tokens/month free)<br>' +
           'To configure: <span style="color:#00ff88;">export QWEN_API_KEY=your_key</span><br>' +
           'Then restart the backend server.' +
         '</div>' +
@@ -1251,7 +1246,7 @@
       opt.addEventListener('click', function() {
         settings.theme = this.dataset.theme;
         saveSettings(settings);
-        applyTheme(settings);
+        window.applyTheme(settings.theme);
         contentEl.innerHTML = buildAppearancePanel(settings);
         bindAppearanceEvents(win, contentEl, settings);
       });
@@ -1264,7 +1259,8 @@
         saveSettings(settings);
         var label = contentEl.querySelector('#set-fontsize-val');
         if (label) label.textContent = settings.fontSize + 'px';
-        document.documentElement.style.setProperty('--text-base', settings.fontSize + 'px');
+        if (window.applyFontSize) window.applyFontSize(settings.fontSize);
+        else document.documentElement.style.setProperty('--text-base', settings.fontSize + 'px');
       });
     }
 

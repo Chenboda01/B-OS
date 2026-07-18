@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=B-OS
+Comment=Browser-based Custom Operating System
+Exec=bash /home/bodachen/B-OS/launch.sh
+Path=/home/bodachen/B-OS
+Icon=utilities-terminal
+Terminal=false
+Type=Application
+Categories=System;
+StartupNotify=false
