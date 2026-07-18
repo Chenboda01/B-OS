@@ -879,139 +879,55 @@ if (data.error.indexOf('QWEN_API_KEY') !== -1 || data.error.indexOf('key') !== -
 // APP 4 — BROWSER
 // ═══════════════════════════════════════════════════════════════
 (function() {
-  var urlHistory = [];
-  var historyPos = -1;
-
-  function pushURL(url) {
-    if (urlHistory[historyPos] !== url) {
-      urlHistory = urlHistory.slice(0, historyPos + 1);
-      urlHistory.push(url);
-      historyPos = urlHistory.length - 1;
-    }
-  }
-
   function esc(s) {
     return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
   function createUI() {
     return '<div class="bos-app" style="display:flex;flex-direction:column;height:100%;background:#050510;color:#e8eaff;font-family:var(--font-mono,monospace);font-size:12px;overflow:hidden;">' +
-      /* Toolbar */
       '<div style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:#0a0a1a;border-bottom:1px solid rgba(0,240,255,0.1);flex-wrap:wrap;">' +
-        '<button id="br-back" title="Back" style="background:none;border:1px solid #181848;color:#9999cc;padding:4px 8px;border-radius:2px;cursor:pointer;">◀</button>' +
-        '<button id="br-fwd" title="Forward" style="background:none;border:1px solid #181848;color:#9999cc;padding:4px 8px;border-radius:2px;cursor:pointer;">▶</button>' +
-        '<button id="br-refresh" title="Refresh" style="background:none;border:1px solid #181848;color:#9999cc;padding:4px 8px;border-radius:2px;cursor:pointer;">↻</button>' +
-        '<input id="br-url" type="text" value="https://duckduckgo.com" ' +
+        '<input id="br-url" type="text" placeholder="Enter URL or search..." ' +
           'style="flex:1;min-width:200px;background:#050510;border:1px solid #181848;color:#00f0ff;padding:4px 10px;border-radius:2px;font-family:var(--font-mono,monospace);font-size:12px;outline:none;" />' +
-        '<button id="br-go" style="background:#00f0ff;color:#050510;border:none;padding:4px 12px;border-radius:2px;cursor:pointer;font-weight:bold;font-size:12px;">Go</button>' +
+        '<button id="br-go" style="background:#00f0ff;color:#050510;border:none;padding:4px 12px;border-radius:2px;cursor:pointer;font-weight:bold;font-size:12px;">Open</button>' +
       '</div>' +
-      /* Quick links */
       '<div style="display:flex;gap:6px;padding:6px 10px;background:#050510;border-bottom:1px solid rgba(0,240,255,0.05);flex-wrap:wrap;">' +
-        '<span class="br-quick" data-url="https://duckduckgo.com" style="cursor:pointer;color:#555580;font-size:11px;padding:2px 8px;border:1px solid #181848;border-radius:2px;transition:all 0.2s;">DuckDuckGo</span>' +
-        '<span class="br-quick" data-url="https://www.bing.com" style="cursor:pointer;color:#555580;font-size:11px;padding:2px 8px;border:1px solid #181848;border-radius:2px;transition:all 0.2s;">Bing</span>' +
-        '<span class="br-quick" data-url="https://github.com" style="cursor:pointer;color:#555580;font-size:11px;padding:2px 8px;border:1px solid #181848;border-radius:2px;transition:all 0.2s;">GitHub</span>' +
+        '<span class="br-quick" data-url="https://www.google.com" style="cursor:pointer;color:#9999cc;font-size:11px;padding:4px 12px;border:1px solid #181848;border-radius:2px;transition:all 0.2s;">Google</span>' +
+        '<span class="br-quick" data-url="https://www.bing.com" style="cursor:pointer;color:#9999cc;font-size:11px;padding:4px 12px;border:1px solid #181848;border-radius:2px;transition:all 0.2s;">Bing</span>' +
+        '<span class="br-quick" data-url="https://duckduckgo.com" style="cursor:pointer;color:#9999cc;font-size:11px;padding:4px 12px;border:1px solid #181848;border-radius:2px;transition:all 0.2s;">DuckDuckGo</span>' +
+        '<span class="br-quick" data-url="https://github.com" style="cursor:pointer;color:#9999cc;font-size:11px;padding:4px 12px;border:1px solid #181848;border-radius:2px;transition:all 0.2s;">GitHub</span>' +
       '</div>' +
-      /* Loading indicator */
-      '<div id="br-loading" style="height:2px;background:transparent;overflow:hidden;flex-shrink:0;">' +
-        '<div style="width:30%;height:100%;background:#00f0ff;box-shadow:0 0 8px #00f0ff;animation:brSlide 1.5s ease-in-out infinite;border-radius:1px;"></div>' +
+      '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;text-align:center;">' +
+        '<div style="font-size:48px;margin-bottom:16px;opacity:0.3;">🌎</div>' +
+        '<div style="color:#9999cc;font-size:13px;margin-bottom:8px;">B-OS Browser</div>' +
+        '<div style="color:#555580;font-size:11px;max-width:400px;line-height:1.6;">' +
+          'Type a URL or search query above and press Enter.<br>' +
+          'Sites open in your real browser for full compatibility.<br><br>' +
+          '<span style="color:#00f0ff;">Quick links</span> above open popular sites instantly.' +
+        '</div>' +
       '</div>' +
-      /* Iframe */
-      '<div style="flex:1;position:relative;">' +
-        '<iframe id="br-frame" src="https://duckduckgo.com" ' +
-          'style="width:100%;height:100%;border:none;background:#fff;" ' +
-          'sandbox="allow-same-origin allow-scripts allow-forms" ' +
-          'loading="lazy"></iframe>' +
-      '</div>' +
-      /* Inject loading animation */
-      '<style>@keyframes brSlide{0%{transform:translateX(-100%);}100%{transform:translateX(400%);}}</style>' +
     '</div>';
   }
 
-  function navigateTo(win, url) {
+  function openURL(url) {
     if (!url) return;
-    if (!/^https?:\/\//.test(url)) url = 'https://' + url;
-    var frame = win.querySelector('#br-frame');
-    var input = win.querySelector('#br-url');
-    var loading = win.querySelector('#br-loading');
-    if (input) input.value = url;
-    if (loading) loading.style.height = '2px';
-    if (frame) {
-      frame.src = url;
-      pushURL(url);
-      frame.onload = function() {
-        if (loading) {
-          setTimeout(function() { loading.style.height = '0'; }, 600);
-        }
-      };
+    if (!/^https?:\/\//.test(url)) {
+      if (url.includes('.') && !url.includes(' ')) url = 'https://' + url;
+      else url = 'https://www.google.com/search?q=' + encodeURIComponent(url);
     }
+    window.open(url, '_blank');
   }
 
   function setupEvents(win) {
-    var loading = win.querySelector('#br-loading');
-    if (loading) loading.style.height = '2px';
-    setTimeout(function() { if (loading) loading.style.height = '0'; }, 2000);
-
     win.querySelector('#br-go').addEventListener('click', function() {
-      navigateTo(win, win.querySelector('#br-url').value.trim());
+      openURL(win.querySelector('#br-url').value.trim());
     });
-
     win.querySelector('#br-url').addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') {
-        navigateTo(win, this.value.trim());
-      }
+      if (e.key === 'Enter') openURL(this.value.trim());
     });
-
-    win.querySelector('#br-back').addEventListener('click', function() {
-      if (historyPos > 0) {
-        historyPos--;
-        var url = urlHistory[historyPos];
-        var frame = win.querySelector('#br-frame');
-        var input = win.querySelector('#br-url');
-        if (input) input.value = url;
-        if (loading) loading.style.height = '2px';
-        if (frame) {
-          frame.src = url;
-          frame.onload = function() { setTimeout(function() { if (loading) loading.style.height = '0'; }, 600); };
-        }
-      }
-    });
-
-    win.querySelector('#br-fwd').addEventListener('click', function() {
-      if (historyPos < urlHistory.length - 1) {
-        historyPos++;
-        var url = urlHistory[historyPos];
-        var frame = win.querySelector('#br-frame');
-        var input = win.querySelector('#br-url');
-        if (input) input.value = url;
-        if (loading) loading.style.height = '2px';
-        if (frame) {
-          frame.src = url;
-          frame.onload = function() { setTimeout(function() { if (loading) loading.style.height = '0'; }, 600); };
-        }
-      }
-    });
-
-    win.querySelector('#br-refresh').addEventListener('click', function() {
-      var frame = win.querySelector('#br-frame');
-      if (frame) {
-        if (loading) loading.style.height = '2px';
-        frame.src = frame.src;
-        setTimeout(function() { if (loading) loading.style.height = '0'; }, 2000);
-      }
-    });
-
     win.querySelectorAll('.br-quick').forEach(function(link) {
-      link.addEventListener('click', function() {
-        navigateTo(win, this.dataset.url);
-      });
-      link.addEventListener('mouseover', function() {
-        this.style.color = '#00f0ff';
-        this.style.borderColor = '#00f0ff';
-      });
-      link.addEventListener('mouseout', function() {
-        this.style.color = '#555580';
-        this.style.borderColor = '#181848';
-      });
+      link.addEventListener('click', function() { openURL(this.dataset.url); });
+      link.addEventListener('mouseover', function() { this.style.color = '#00f0ff'; this.style.borderColor = '#00f0ff'; });
+      link.addEventListener('mouseout', function() { this.style.color = '#9999cc'; this.style.borderColor = '#181848'; });
     });
   }
 
@@ -1247,8 +1163,10 @@ if (data.error.indexOf('QWEN_API_KEY') !== -1 || data.error.indexOf('key') !== -
         settings.theme = this.dataset.theme;
         saveSettings(settings);
         window.applyTheme(settings.theme);
-        contentEl.innerHTML = buildAppearancePanel(settings);
-        bindAppearanceEvents(win, contentEl, settings);
+        contentEl.querySelectorAll('.set-theme-opt').forEach(function(o) {
+          o.style.borderColor = o.dataset.theme === settings.theme ? '#00f0ff' : '#181848';
+          o.style.color = o.dataset.theme === settings.theme ? '#00f0ff' : '#9999cc';
+        });
       });
     });
 
@@ -1269,8 +1187,11 @@ if (data.error.indexOf('QWEN_API_KEY') !== -1 || data.error.indexOf('key') !== -
         settings.wallpaper = this.dataset.wallpaper;
         saveSettings(settings);
         applyWallpaper(settings.wallpaper);
-        contentEl.innerHTML = buildAppearancePanel(settings);
-        bindAppearanceEvents(win, contentEl, settings);
+        contentEl.querySelectorAll('.set-wallpaper-opt').forEach(function(o) {
+          o.style.borderColor = o.dataset.wallpaper === settings.wallpaper ? '#00f0ff' : '#181848';
+          o.style.color = o.dataset.wallpaper === settings.wallpaper ? '#00f0ff' : '#9999cc';
+        });
+      });
       });
     });
   }
