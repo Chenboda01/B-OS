@@ -271,13 +271,12 @@
       var win = this._windows[id];
       if (!win || win.minimized) return;
 
-      /* Update z-index */
       this._nextZ++;
+      win._zIdx = this._nextZ;
+      win._lastFocused = Date.now();
       var el = document.getElementById(id);
       if (el) el.style.zIndex = this._nextZ;
 
-      /* Unfocus all, focus this */
-      var prev = this._focusedId;
       this._focusedId = id;
       document.querySelectorAll('.bos-window').forEach(function(w) {
         w.classList.remove('focused');
@@ -288,6 +287,7 @@
     },
 
     minimizeWindow: function(id) {
+      var self = this;
       var win = this._windows[id];
       if (!win) return;
       var el = document.getElementById(id);
@@ -302,10 +302,13 @@
       win.minimized = true;
       if (this._focusedId === id) {
         this._focusedId = null;
-        var firstVisible = Object.keys(this._windows).find(function(kid) {
-          return kid !== id && !self._windows[kid].minimized;
+        var found = false;
+        Object.keys(this._windows).forEach(function(kid) {
+          if (!found && kid !== id && !self._windows[kid].minimized) {
+            found = true;
+            self.focusWindow(kid);
+          }
         });
-        if (firstVisible) this.focusWindow(firstVisible);
       }
       this._updateTaskbar();
     },
@@ -688,7 +691,7 @@
     { text: '  [OK] Desktop Environment (bde)', cls: 'ok' },
     { text: '', cls: '' },
       { text: 'Connecting to backend...........', cls: '' },
-      { text: '  [....] API gateway check pending', cls: 'dim' },
+      { text: '  [....] API gateway check pending', cls: 'dim', id: 'bootBackendStatus' },
       { text: '', cls: '' },
     { text: 'Initializing applications.......', cls: '' },
     { text: '  [OK] App registry loaded', cls: 'ok' },
@@ -711,9 +714,8 @@
     if (bootIndex < bootLines.length) {
       var line = bootLines[bootIndex];
       var span = document.createElement('span');
-      if (line.cls) {
-        span.className = line.cls;
-      }
+      if (line.cls) { span.className = line.cls; }
+      if (line.id) { span.id = line.id; }
       span.textContent = line.text + '\n';
       bootText.appendChild(span);
 
@@ -734,16 +736,18 @@
         requestFullscreen();
         if (typeof API !== 'undefined' && API.health) {
           API.health().then(function(r) {
+            var line = document.getElementById('bootBackendStatus');
+            if (!line) return;
             if (r.status === 'ok') {
-              bootText.querySelector('.dim:last-child').textContent = '  [OK] API gateway reachable';
-              bootText.querySelector('.dim:last-child').className = 'ok';
+              line.textContent = '  [OK] API gateway reachable';
+              line.className = 'ok';
             } else {
-              bootText.querySelector('.dim:last-child').textContent = '  [WARN] Backend offline';
-              bootText.querySelector('.dim:last-child').className = 'warn';
+              line.textContent = '  [WARN] Backend offline';
+              line.className = 'warn';
             }
           }).catch(function() {
-            var last = bootText.querySelector('.dim:last-child');
-            if (last) { last.textContent = '  [WARN] Backend unreachable'; last.className = 'warn'; }
+            var line2 = document.getElementById('bootBackendStatus');
+            if (line2) { line2.textContent = '  [WARN] Backend unreachable'; line2.className = 'warn'; }
           });
         }
       }, 500);
@@ -1158,12 +1162,8 @@
           loginError.style.display = 'block';
         }
       } else {
-        /* First time — create account */
-        var salt = generateSalt();
-        var hash = await hashPassword(pass, salt);
-        localStorage.setItem('bos-user-' + user, JSON.stringify({salt: salt, hash: hash}));
-        loginError.style.display = 'none';
-        hideLogin();
+        loginError.textContent = 'Account not found.';
+        loginError.style.display = 'block';
       }
     } catch(e) {
       loginError.textContent = 'Login error. Try again.';
