@@ -983,6 +983,12 @@ section {
   border: 1px solid var(--cyan-dim);
 }
 
+.feature-tag--backend {
+  background: rgba(255, 170, 0, 0.1);
+  color: var(--amber);
+  border: 1px solid var(--amber-dim);
+}
+
 .feature-tag--beta {
   background: var(--magenta-ghost);
   color: var(--magenta);
@@ -1321,7 +1327,7 @@ section {
 <!-- ═══════════════════════════════════════════════════
      BOOT SCREEN
      ═══════════════════════════════════════════════════ -->
-<div class="boot-overlay" id="bootOverlay">
+<div class="boot-overlay" id="bootOverlay" aria-hidden="true">
   <div class="boot-text" id="bootText"></div>
   <div class="boot-progress"><div class="boot-progress-bar" id="bootProgress"></div></div>
 </div>
@@ -1329,18 +1335,18 @@ section {
 <!-- ═══════════════════════════════════════════════════
      BACKGROUND LAYERS
      ═══════════════════════════════════════════════════ -->
-<div class="bg-grid"></div>
-<div class="bg-scanlines"></div>
-<div class="bg-noise"></div>
-<div class="orb orb--cyan"></div>
-<div class="orb orb--magenta"></div>
-<div class="particles" id="particles"></div>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-scanlines" aria-hidden="true"></div>
+<div class="bg-noise" aria-hidden="true"></div>
+<div class="orb orb--cyan" aria-hidden="true"></div>
+<div class="orb orb--magenta" aria-hidden="true"></div>
+<div class="particles" id="particles" aria-hidden="true"></div>
 
 <!-- ═══════════════════════════════════════════════════
      CUSTOM CURSOR
      ═══════════════════════════════════════════════════ -->
-<div class="cursor-dot" id="cursorDot"></div>
-<div class="cursor-ring" id="cursorRing"></div>
+<div class="cursor-dot" id="cursorDot" aria-hidden="true"></div>
+<div class="cursor-ring" id="cursorRing" aria-hidden="true"></div>
 
 <!-- ═══════════════════════════════════════════════════
      NAVIGATION
@@ -1421,7 +1427,7 @@ section {
       </div>
       <div class="feature-name">Files</div>
       <div class="feature-desc">Browse approved folders through the B-OS local backend, with access restricted by configurable permissions.</div>
-      <span class="feature-tag feature-tag--core">Core</span>
+      <span class="feature-tag feature-tag--backend">Backend</span>
     </div>
 
     <!-- Games -->
@@ -1480,7 +1486,7 @@ section {
         </svg>
       </div>
       <div class="feature-name">Settings</div>
-      <div class="feature-desc">Full system configuration panel. Appearance, behavior, performance tuning, and account management.</div>
+      <div class="feature-desc">Configure themes, wallpaper, font size, backend connection, updates, and AI integration.</div>
       <span class="feature-tag feature-tag--core">Core</span>
     </div>
 
@@ -1494,7 +1500,7 @@ section {
       </div>
       <div class="feature-name">Terminal</div>
       <div class="feature-desc">Linux-style terminal with selected safe commands. Optional local operations use a restricted backend.</div>
-      <span class="feature-tag feature-tag--core">Core</span>
+      <span class="feature-tag feature-tag--backend">Backend</span>
     </div>
 
     <!-- Clock -->
@@ -1506,7 +1512,7 @@ section {
         </svg>
       </div>
       <div class="feature-name">Clock</div>
-      <div class="feature-desc">Syncs to your host OS time. 12/24-hour toggle, seconds display, and world clock support.</div>
+      <div class="feature-desc">Syncs to your system time with a 12/24-hour mode and live seconds display. Additional clock tools are planned.</div>
       <span class="feature-tag feature-tag--core">Core</span>
     </div>
 
@@ -1718,7 +1724,7 @@ try {
     'Loading visual modules......... OK',
     'Loading navigation............. OK',
     'Loading project information.... OK',
-    'Checking optional services......',
+    'Preparing optional services...',
     'Preparing launch controls...... OK',
     'Portal interface ready.',
     '',
@@ -1769,20 +1775,30 @@ try {
     document.addEventListener('pointermove', function(e) {
       mouseX = e.clientX;
       mouseY = e.clientY;
+
+      if (!pointerRecorded) {
+        ringX = mouseX;
+        ringY = mouseY;
+        pointerRecorded = true;
+      }
+
       dot.style.left = mouseX + 'px';
       dot.style.top = mouseY + 'px';
-      pointerRecorded = true;
       document.documentElement.classList.add('cursor-ready');
     });
 
-    document.addEventListener('pointerleave', function() {
+    document.documentElement.addEventListener('pointerleave', function() {
       document.documentElement.classList.remove('cursor-ready');
     });
 
-    document.addEventListener('pointerenter', function() {
+    document.documentElement.addEventListener('pointerenter', function() {
       if (pointerRecorded) {
         document.documentElement.classList.add('cursor-ready');
       }
+    });
+
+    window.addEventListener('blur', function() {
+      document.documentElement.classList.remove('cursor-ready');
     });
 
     function animateRing() {
