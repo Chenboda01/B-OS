@@ -1715,6 +1715,10 @@ section {
 'use strict';
 
 try {
+  const reduceMotion = window.matchMedia(
+    '(prefers-reduced-motion: reduce)'
+  ).matches;
+
   /* ─────────────────────────────────────────────────
      BOOT SEQUENCE
      ───────────────────────────────────────────────── */
@@ -1740,18 +1744,29 @@ try {
   const lineInterval = totalBootTime / bootLines.length;
   let bootFailsafe;
 
+  function handleBootKeydown(event) {
+    if (event.key === 'Escape' || event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      dismissBoot();
+    }
+  }
+
   function dismissBoot() {
     if (bootDismissed) return;
     bootDismissed = true;
     clearTimeout(bootFailsafe);
     bootOverlay.classList.add('hidden');
-    document.removeEventListener('keydown', dismissBoot);
+    document.removeEventListener('keydown', handleBootKeydown);
     bootOverlay.removeEventListener('click', dismissBoot);
   }
 
   bootFailsafe = setTimeout(dismissBoot, 6000);
-  document.addEventListener('keydown', dismissBoot);
+  document.addEventListener('keydown', handleBootKeydown);
   bootOverlay.addEventListener('click', dismissBoot);
+
+  if (reduceMotion) {
+    dismissBoot();
+  }
 
   function typeBootLine() {
     if (bootDismissed) return;
@@ -1774,7 +1789,6 @@ try {
      ───────────────────────────────────────────────── */
   const dot = document.getElementById('cursorDot');
   const ring = document.getElementById('cursorRing');
-  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const finePointer = window.matchMedia('(pointer: fine)').matches;
   let mouseX = 0, mouseY = 0;
   let ringX = 0, ringY = 0;
