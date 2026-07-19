@@ -1766,6 +1766,8 @@ try {
 
   if (reduceMotion) {
     dismissBoot();
+  } else {
+    setTimeout(typeBootLine, 300);
   }
 
   function typeBootLine() {
@@ -1781,8 +1783,6 @@ try {
       setTimeout(dismissBoot, 400);
     }
   }
-
-  setTimeout(typeBootLine, 300);
 
   /* ─────────────────────────────────────────────────
      CUSTOM CURSOR
