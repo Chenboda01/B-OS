@@ -1104,18 +1104,28 @@
 
   function showLogin(msg) {
     loginMsg.textContent = msg || 'Sign in to unlock';
-    var now = new Date();
-    document.getElementById('lockTime').textContent = now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
-    document.getElementById('lockDate').textContent = now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+    updateLockClock();
     loginOverlay.classList.add('active');
     document.getElementById('loginUser').focus();
   }
-
+  function updateLockClock() {
+    var now = new Date();
+    document.getElementById('lockTime').textContent = now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+    document.getElementById('lockDate').textContent = now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  }
+  var lockClockInterval = null;
+  var origShowLogin = showLogin;
+  showLogin = function(msg) {
+    origShowLogin(msg);
+    if (lockClockInterval) clearInterval(lockClockInterval);
+    lockClockInterval = setInterval(updateLockClock, 10000);
+  };
   function hideLogin() {
     loginOverlay.classList.remove('active');
     document.getElementById('loginUser').value = '';
     document.getElementById('loginPass').value = '';
     loginError.style.display = 'none';
+    if (lockClockInterval) { clearInterval(lockClockInterval); lockClockInterval = null; }
   }
 
   async function hashPassword(password, salt) {
@@ -1294,6 +1304,7 @@
      KEYBOARD SHORTCUTS
      ───────────────────────────────────────────────── */
   document.addEventListener('keydown', function(e) {
+    if (loginOverlay.classList.contains('active')) { if (e.key === 'Enter') return; return; }
     if (e.key === 'Escape') {
       if (document.activeElement === searchInput && searchInput.value) {
         searchInput.value = '';

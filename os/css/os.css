@@ -81,7 +81,14 @@ html, body {
   user-select: none;
 }
 
-::selection {
+.win-titlebar, #taskbar, .desktop-icon, #bootText, #startMenu, #desktopIcons {
+  user-select: none;
+}
+.win-body, input, textarea, #term-output, [contenteditable] {
+  user-select: text;
+}
+
+::-moz-selection { background: var(--cyan); color: #fff; }
   background: var(--cyan);
   color: #fff;
 }
