@@ -1735,13 +1735,27 @@ try {
   const bootProgress = document.getElementById('bootProgress');
   const bootOverlay = document.getElementById('bootOverlay');
   let bootIndex = 0;
+  let bootDismissed = false;
   const totalBootTime = 2800;
   const lineInterval = totalBootTime / bootLines.length;
-  const bootFailsafe = setTimeout(function() {
+  let bootFailsafe;
+
+  function dismissBoot() {
+    if (bootDismissed) return;
+    bootDismissed = true;
+    clearTimeout(bootFailsafe);
     bootOverlay.classList.add('hidden');
-  }, 6000);
+    document.removeEventListener('keydown', dismissBoot);
+    bootOverlay.removeEventListener('click', dismissBoot);
+  }
+
+  bootFailsafe = setTimeout(dismissBoot, 6000);
+  document.addEventListener('keydown', dismissBoot);
+  bootOverlay.addEventListener('click', dismissBoot);
 
   function typeBootLine() {
+    if (bootDismissed) return;
+
     if (bootIndex < bootLines.length) {
       const line = document.createTextNode(bootLines[bootIndex] + '\n');
       bootText.appendChild(line);
@@ -1749,10 +1763,7 @@ try {
       bootIndex++;
       setTimeout(typeBootLine, lineInterval);
     } else {
-      setTimeout(function() {
-        clearTimeout(bootFailsafe);
-        bootOverlay.classList.add('hidden');
-      }, 400);
+      setTimeout(dismissBoot, 400);
     }
   }
 
@@ -1810,7 +1821,7 @@ try {
     }
     animateRing();
 
-    var hoverTargets = document.querySelectorAll('a, button, .feature-card, .install-step, .spec-card, .nav-logo');
+    var hoverTargets = document.querySelectorAll('a, .feature-card, .install-step, .spec-card');
     hoverTargets.forEach(function(el) {
       el.addEventListener('mouseenter', function() { ring.classList.add('hovering'); });
       el.addEventListener('mouseleave', function() { ring.classList.remove('hovering'); });
@@ -1925,9 +1936,13 @@ try {
      NAV BACKGROUND ON SCROLL
      ───────────────────────────────────────────────── */
   var nav = document.getElementById('nav');
-  window.addEventListener('scroll', function() {
+
+  function updateNavState() {
     nav.classList.toggle('scrolled', window.scrollY > 50);
-  }, { passive: true });
+  }
+
+  updateNavState();
+  window.addEventListener('scroll', updateNavState, { passive: true });
 
 } catch (error) {
   console.error('Portal initialization failed:', error);
