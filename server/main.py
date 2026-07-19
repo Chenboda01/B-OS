@@ -1,7 +1,8 @@
 """
 B-OS Backend Server
 Provides terminal execution, file system access, and AI chat proxy.
-Run: pip install -r requirements.txt && python main.py
+Setup: python -m venv .venv && .venv/bin/python -m pip install -r requirements.txt
+Run: .venv/bin/python main.py
 """
 import os
 import subprocess
@@ -13,7 +14,23 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app)
+
+ALLOWED_ORIGINS = [
+    "https://chenboda01.github.io",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+
+CORS(app, resources={
+    r"/api/.*": {
+        "origins": ALLOWED_ORIGINS,
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Accept", "Content-Type"],
+        "supports_credentials": False,
+        "vary_header": True,
+        "allow_private_network": True,
+    },
+})
 
 ALLOWED_DIRS = [
     os.path.expanduser("~"),
@@ -329,7 +346,7 @@ def ai_chat():
 
 @app.route("/api/health", methods=["GET"])
 def health():
-    return jsonify({"status": "ok", "os": os.uname().sysname, "hostname": os.uname().nodename})
+    return jsonify({"status": "ok", "service": "b-os-backend"})
 
 
 # ─── Main ────────────────────────────────────────────────────────
@@ -337,7 +354,7 @@ def health():
 if __name__ == "__main__":
     print("╔══════════════════════════════════════════════╗")
     print("║           B-OS Backend Server v1.0           ║")
-    print("║        http://localhost:8765                 ║")
+    print("║        http://127.0.0.1:8765                 ║")
     print("╠══════════════════════════════════════════════╣")
     print("║  Endpoints:                                  ║")
     print("║  POST /api/terminal/exec  - Run commands     ║")
@@ -346,4 +363,4 @@ if __name__ == "__main__":
     print("║  POST /api/ai/chat        - AI chat          ║")
     print("║  GET  /api/health         - Server status    ║")
     print("╚══════════════════════════════════════════════╝")
-    app.run(host="0.0.0.0", port=8765, debug=True)
+    app.run(host="127.0.0.1", port=8765, debug=False)

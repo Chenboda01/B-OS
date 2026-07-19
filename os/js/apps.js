@@ -536,7 +536,6 @@
     );
 
     API.health().then(function(data) {
-      if (data.hostname) hostname = data.hostname;
       if (data.status === 'ok') {
         updatePrompt(outputEl);
       }
@@ -1336,8 +1335,7 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
             '<div style="width:8px;height:8px;border-radius:50%;background:#00ff88;box-shadow:0 0 8px #00ff88;"></div>' +
             '<span style="color:#00ff88;font-size:12px;font-weight:bold;">Backend Online</span>' +
           '</div>' +
-          (data.hostname ? '<div style="color:#9999cc;font-size:11px;">Host: ' + esc(String(data.hostname)) + '</div>' : '') +
-          (data.os ? '<div style="color:#9999cc;font-size:11px;">Platform: ' + esc(String(data.os)) + '</div>' : '');
+          (data.service ? '<div style="color:#9999cc;font-size:11px;">Service: ' + esc(String(data.service)) + '</div>' : '');
       } else {
         target.innerHTML = '<div style="display:flex;align-items:center;gap:8px;">' +
           '<div style="width:8px;height:8px;border-radius:50%;background:#ff3355;box-shadow:0 0 8px #ff3355;"></div>' +
