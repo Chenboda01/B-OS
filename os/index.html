@@ -61,10 +61,10 @@
      CONFIRMATION DIALOG
      ═══════════════════════════════════════════════════ -->
 <div id="confirmOverlay">
-  <div id="confirmDialog">
+  <div id="confirmDialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmDescription">
     <div class="dlg-icon">&#9211;</div>
-    <div class="dlg-title">Return to host OS?</div>
-    <div class="dlg-body">This will close B-OS and navigate back to the landing page.</div>
+    <div class="dlg-title" id="confirmTitle">Return to host OS?</div>
+    <div class="dlg-body" id="confirmDescription">This will close B-OS and navigate back to the landing page.</div>
     <div class="dlg-actions">
       <button class="dlg-btn dlg-btn--yes" id="confirmYes">Yes, Exit</button>
       <button class="dlg-btn dlg-btn--no" id="confirmNo">Stay</button>
@@ -885,6 +885,10 @@
     }
 
     function draw() {
+      requestAnimationFrame(draw);
+      if (!particlesRunning) return;
+      if (document.hidden) return;
+      if (canvas.style.display === 'none') return;
       ctx.clearRect(0, 0, W, H);
       particles.forEach(function(p) {
         p.x += p.vx;
@@ -919,12 +923,9 @@
         }
       }
       ctx.globalAlpha = 1;
-      requestAnimationFrame(draw);
-      if (!particlesRunning || document.hidden || canvas.style.display === 'none') return;
-      return;
     }
-    ctx.clearRect(0, 0, W, H);
-    particles.forEach(function(p) {
+
+    draw();
     }
 
     draw();
@@ -966,11 +967,12 @@
       backendDot.classList.remove('online');
       backendLabel.textContent = 'offline';
       backendTooltip.textContent = 'Backend: Unreachable';
+    }).finally(function() {
+      setTimeout(pollBackend, 5000);
     });
   }
 
   pollBackend();
-  setInterval(pollBackend, 5000);
 
   /* ─────────────────────────────────────────────────
      START MENU
@@ -1240,8 +1242,8 @@
     if (e.target.closest('.bos-window')) return;
     e.preventDefault();
     ctxMenu.style.display = 'block';
-    ctxMenu.style.left = e.clientX + 'px';
-    ctxMenu.style.top = e.clientY + 'px';
+    ctxMenu.style.left = Math.min(e.clientX, window.innerWidth - 180) + 'px';
+    ctxMenu.style.top = Math.min(e.clientY, window.innerHeight - 220) + 'px';
   });
   document.addEventListener('click', function() { ctxMenu.style.display = 'none'; });
   ctxMenu.querySelectorAll('.ctx-item').forEach(function(item) {
@@ -1274,11 +1276,19 @@
     renderAltTab();
   }
   function renderAltTab() {
-    var html = '';
+    altTabContent.replaceChildren();
     altTabWindows.forEach(function(w, i) {
-      html += '<div class="alt-tab-item'+(i===altTabIdx?' selected':'')+(w.minimized?' style="opacity:0.5"':'')+'">'+w.icon+'<br>'+w.title+'</div>';
+      var item = document.createElement('div');
+      item.className = 'alt-tab-item' + (i === altTabIdx ? ' selected' : '') + (w.minimized ? ' minimized' : '');
+      var iconEl = document.createElement('div');
+      iconEl.textContent = w.icon || '■';
+      var titleEl = document.createElement('div');
+      titleEl.style.fontSize = '11px';
+      titleEl.textContent = w.title;
+      item.appendChild(iconEl);
+      item.appendChild(titleEl);
+      altTabContent.appendChild(item);
     });
-    altTabContent.innerHTML = html;
   }
   function hideAltTab() {
     altTabOpen = false;
