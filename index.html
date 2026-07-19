@@ -1227,7 +1227,7 @@ section {
     <li><a href="#specs">Specs</a></li>
     <li><a href="#install">Install</a></li>
   </ul>
-  <div class="nav-status">System Online</div>
+  <div class="nav-status" id="systemStatus">Loading...</div>
 </nav>
 
 <!-- ═══════════════════════════════════════════════════
@@ -1278,8 +1278,7 @@ section {
     </h1>
     <p class="hero-tagline reveal reveal-delay-2">
       B-OS is a browser-based operating system simulation that reimagines
-      what a desktop environment can be. Not a skin. Not a theme.
-      An entire OS, running where you already are.
+      what a desktop environment can be. More than a theme—a working browser-based desktop simulation.
     </p>
     <div class="hero-actions reveal reveal-delay-3">
       <button class="btn btn--primary" onclick="location.href='os/index.html'">
@@ -1334,7 +1333,7 @@ section {
         </svg>
       </div>
       <div class="feature-name">Files</div>
-      <div class="feature-desc">Bridges directly to your host OS file system. Browse, manage, and transfer files through a unified interface.</div>
+      <div class="feature-desc">Browse approved folders through the B-OS local backend, with access restricted by configurable permissions.</div>
       <span class="feature-tag feature-tag--core">Core</span>
     </div>
 
@@ -1407,7 +1406,7 @@ section {
         </svg>
       </div>
       <div class="feature-name">Terminal</div>
-      <div class="feature-desc">Manjaro Linux command compatibility. sudo, pacman, and a full shell environment in your browser.</div>
+      <div class="feature-desc">Linux-style terminal with selected pacman and sudo commands. Real shell access through the local backend.</div>
       <span class="feature-tag feature-tag--core">Core</span>
     </div>
 
@@ -1457,13 +1456,13 @@ section {
     </div>
     <div class="spec-card reveal reveal-delay-2">
       <div class="spec-label">Frontend Stack</div>
-      <div class="spec-value">CSS / Java / Python</div>
+      <div class="spec-value">HTML / CSS / JavaScript</div>
       <div class="spec-detail">Web technologies bridging to backend systems.</div>
     </div>
     <div class="spec-card reveal reveal-delay-3">
       <div class="spec-label">Terminal Engine</div>
-      <div class="spec-value">Manjaro-Compatible</div>
-      <div class="spec-detail">Full Linux command support via pacman and sudo.</div>
+<div class="spec-value">Linux-Compatible</div>
+        <div class="spec-detail">Bash-style terminal with optional backend integration.</div>
     </div>
     <div class="spec-card reveal reveal-delay-4">
       <div class="spec-label">AI Backend</div>
@@ -1473,7 +1472,7 @@ section {
     <div class="spec-card reveal reveal-delay-5">
       <div class="spec-label">File System</div>
       <div class="spec-value">Host-Bridged</div>
-      <div class="spec-detail">Direct access to your local file manager.</div>
+      <div class="spec-detail">Optional local file access through the B-OS backend.</div>
     </div>
     <div class="spec-card reveal reveal-delay-6">
       <div class="spec-label">Target Platform</div>
@@ -1523,7 +1522,7 @@ section {
         <div class="install-step-num neon-magenta">04</div>
         <div class="install-step-content">
           <h3>Set Up AI (Optional)</h3>
-          <p>Set the <code style="color:var(--green)">QWEN_API_KEY</code> environment variable to enable the AI Chat app. Powered by QWEN, completely free.</p>
+          <p>Powered by a user-configured QWEN-compatible API. Usage limits depend on the provider.</p>
         </div>
       </div>
     </div>
