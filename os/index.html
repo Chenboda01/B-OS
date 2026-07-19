@@ -49,13 +49,13 @@
 <!-- ═══════════════════════════════════════════════════
      EXIT BUTTON
      ═══════════════════════════════════════════════════ -->
-<div id="exitButton" title="Exit B-OS">
+<button id="exitButton" aria-label="Exit B-OS" title="Exit B-OS">
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
     <polyline points="16 17 21 12 16 7"/>
     <line x1="21" y1="12" x2="9" y2="12"/>
   </svg>
-</div>
+</button>
 
 <!-- ═══════════════════════════════════════════════════
      CONFIRMATION DIALOG
@@ -196,7 +196,8 @@
     _startMenuOpen: false,
 
     registerApp: function(app) {
-      /* app: { id, name, icon, category, launch } */
+      if (!app || !app.id || !app.name) return false;
+      if (this._apps.some(function(e) { return e.id === app.id; })) return false;
       this._apps.push(app);
       this._renderDesktopIcons();
       this._renderStartMenu();
@@ -327,7 +328,6 @@
       }
       win.minimized = false;
       this.focusWindow(id);
-      this._updateTaskbar();
     },
 
     maximizeWindow: function(id) {
@@ -856,6 +856,7 @@
   /* ─────────────────────────────────────────────────
      PARTICLE CANVAS
      ───────────────────────────────────────────────── */
+  var particlesRunning = true;
   function initParticles() {
     var canvas = document.getElementById('particleCanvas');
     var ctx = canvas.getContext('2d');
@@ -918,7 +919,12 @@
         }
       }
       ctx.globalAlpha = 1;
-      if (!document.hidden && canvas.style.display !== 'none') requestAnimationFrame(draw);
+      requestAnimationFrame(draw);
+      if (!particlesRunning || document.hidden || canvas.style.display === 'none') return;
+      return;
+    }
+    ctx.clearRect(0, 0, W, H);
+    particles.forEach(function(p) {
     }
 
     draw();
@@ -1032,21 +1038,26 @@
      ───────────────────────────────────────────────── */
   var weatherIcon = document.getElementById('weatherIcon');
   var weatherTemp = document.getElementById('weatherTemp');
+  function getWeatherIcon(code) {
+    if (code === 0) return '☀️';
+    if (code === 1 || code === 2) return '🌤️';
+    if (code === 3) return '☁️';
+    if (code === 45 || code === 48) return '🌫️';
+    if ([51,53,55,56,57].indexOf(code)>=0) return '🌦️';
+    if ([61,63,65,66,67,80,81,82].indexOf(code)>=0) return '🌧️';
+    if ([71,73,75,77,85,86].indexOf(code)>=0) return '🌨️';
+    if ([95,96,99].indexOf(code)>=0) return '⛈️';
+    return '🌡️';
+  }
+
   if (navigator.onLine) {
-    fetch('https://api.open-meteo.com/v1/forecast?latitude=40.7&longitude=-74&current_weather=true&timezone=auto')
+    fetch('https://api.open-meteo.com/v1/forecast?latitude=40.7&longitude=-74&current_weather=true&temperature_unit=fahrenheit&timezone=auto')
       .then(function(r) { return r.json(); })
       .then(function(data) {
-        if (data.current_weather) {
-          var code = data.current_weather.weathercode;
-          var icon;
-          if (code === 0) icon = '☀️';
-          else if (code <= 3) icon = '🌤️';
-          else if (code <= 48) icon = '🌫️';
-          else if (code <= 57 || code <= 67 || code <= 82) icon = '🌧️';
-          else if (code <= 77 || code <= 86) icon = '🌨️';
-          else icon = '⛈️';
-          weatherIcon.textContent = icon;
-          weatherTemp.textContent = Math.round(data.current_weather.temperature) + '°';
+          if (data.current_weather) {
+            var code = data.current_weather.weathercode;
+            weatherIcon.textContent = getWeatherIcon(code);
+            weatherTemp.textContent = Math.round(data.current_weather.temperature) + '°F';
         }
       })
       .catch(function() {});
