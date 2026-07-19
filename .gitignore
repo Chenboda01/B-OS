@@ -1,1 +1,4 @@
 .playwright-cli/
+server/.venv/
+__pycache__/
+*.py[cod]

@@ -1,4 +1,6 @@
 #!/bin/bash
+set -euo pipefail
+
 DIR="$(cd "$(dirname "$0")" && pwd)"
 echo "╔══════════════════════════════════════════╗"
 echo "║        B-OS Installation                 ║"
@@ -16,8 +18,9 @@ echo "✓ Desktop entry installed (find B-OS in your app launcher)"
 
 # Install Python dependencies
 echo ""
-echo "Installing Python dependencies..."
-cd "$DIR/server" && pip install -r requirements.txt
+echo "Creating an isolated Python environment..."
+python3 -m venv "$DIR/server/.venv"
+"$DIR/server/.venv/bin/python" -m pip install -r "$DIR/server/requirements.txt"
 echo "✓ Python dependencies installed"
 
 echo ""
