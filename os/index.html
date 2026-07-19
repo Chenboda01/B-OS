@@ -73,25 +73,25 @@
 </div>
 
 <div id="shutdownOverlay">
-  <div style="font-size:48px;margin-bottom:16px;">⏻</div>
-  <div id="shutdownText">Shutting down...</div>
+  <div class="shutdown-icon">⏻</div>
+  <div id="shutdownText" class="shutdown-msg">Shutting down...</div>
 </div>
 
 <div id="loginOverlay">
   <div style="text-align:center;margin-bottom:32px;">
-    <div id="lockTime" style="font-size:48px;color:#fff;font-weight:200;font-family:monospace;"></div>
-    <div id="lockDate" style="font-size:14px;color:#999;margin-top:4px;"></div>
+    <div id="lockTime" class="lock-time"></div>
+    <div id="lockDate" class="lock-date"></div>
   </div>
   <div id="loginBox">
     <div style="text-align:center;margin-bottom:24px;">
-      <div style="font-size:48px;">☁️</div>
-      <div style="font-size:18px;font-weight:bold;color:#e8eaff;margin-top:8px;">B-CLOUD</div>
-      <div id="loginMsg" style="color:#9999cc;font-size:11px;margin-top:4px;">Sign in to your account</div>
+      <div class="lock-avatar">☁️</div>
+      <div class="lock-username">B-CLOUD</div>
+      <div id="loginMsg" class="lock-subtitle">Sign in to your account</div>
     </div>
-    <input id="loginUser" type="text" placeholder="Username" style="width:100%;padding:10px;margin-bottom:8px;background:#0a0a1a;border:1px solid #181848;color:#e8eaff;border-radius:4px;outline:none;font-size:13px;">
-    <input id="loginPass" type="password" placeholder="Password" style="width:100%;padding:10px;margin-bottom:12px;background:#0a0a1a;border:1px solid #181848;color:#e8eaff;border-radius:4px;outline:none;font-size:13px;">
-    <button id="loginBtn" style="width:100%;padding:10px;background:#0078d4;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:13px;font-weight:bold;">Unlock</button>
-    <div id="loginError" style="color:#ff3355;font-size:11px;margin-top:8px;text-align:center;display:none;"></div>
+    <input id="loginUser" class="login-field" type="text" placeholder="Username">
+    <input id="loginPass" class="login-field" type="password" placeholder="Password">
+    <button id="loginBtn" class="login-btn">Unlock</button>
+    <div id="loginError"></div>
   </div>
 </div>
 
@@ -101,18 +101,18 @@
 <div id="taskbar">
   <button id="startBtn" aria-label="Open Start menu" title="Start Menu">&#8862;</button>
   <div id="taskbarSearch">
-    <span style="color:#999;margin-right:4px;">&#128269;</span>
+    <span class="taskbar-search-icon">&#128269;</span>
     <input id="searchInput" type="text" placeholder="Type to search..." autocomplete="off">
   </div>
   <div id="taskbarWindows"></div>
   <div id="systemTray">
-      <div id="trayNetwork" title="Network" style="display:flex;align-items:center;padding:2px 6px;border-radius:4px;color:#ccc;font-size:13px;">📶</div>
-      <div id="trayVolume" title="Volume">
+      <div id="trayNetwork" class="tray-item" title="Network">📶</div>
+      <div id="trayVolume" class="tray-item" title="Volume">
         <span id="volIcon">&#128266;</span>
         <div id="volSlider"><input id="volRange" type="range" min="0" max="100" value="70"></div>
       </div>
-      <div id="trayBattery" title="Battery" style="display:flex;align-items:center;padding:2px 6px;border-radius:4px;color:#ccc;font-size:12px;">🔋 100%</div>
-      <div id="trayWeather" title="Weather">
+      <div id="trayBattery" class="tray-item" title="Battery">🔋 100%</div>
+      <div id="trayWeather" class="tray-item" title="Weather">
         <span id="weatherIcon">☀️</span>
         <span id="weatherTemp">72°</span>
       </div>
@@ -121,7 +121,7 @@
         <span id="backendLabel">offline</span>
         <div id="backendTooltip">Backend: checking...</div>
       </div>
-      <div id="trayClock" title="Click for calendar">00:00:00</div>
+      <div id="trayClock" class="tray-item" title="Click for calendar">00:00:00</div>
       <div id="trayPower" title="Power">
         <span style="font-size:14px;">&#9210;</span>
         <div id="powerMenu">
@@ -134,16 +134,13 @@
     </div>
   </div>
 
-  <!-- Calendar popup -->
   <div id="calendarPopup">
-    <div id="calDate" style="font-size:13px;font-weight:bold;color:#e8eaff;margin-bottom:8px;"></div>
-    <div id="calGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;"></div>
+    <div id="calDate" class="cal-title"></div>
+    <div id="calGrid" class="cal-grid"></div>
   </div>
 
-  <!-- Toast notification container -->
   <div id="toastContainer"></div>
 
-  <!-- Alt+Tab switcher -->
   <div id="altTabOverlay">
     <div id="altTabContent"></div>
   </div>
@@ -164,7 +161,12 @@
     <div class="menu-label">Applications</div>
   </div>
   <div id="startMenuApps"></div>
-  <div id="startMenuFooter">B-OS v0.1</div>
+  <div id="startMenuFooter">
+    <span>B-OS v0.1</span>
+    <div class="startMenu-power-btn" id="startMenuPower" title="Power options">
+      <span class="power-label">⏻ Power</span>
+    </div>
+  </div>
 </div>
 
 <!-- ═══════════════════════════════════════════════════
@@ -255,11 +257,10 @@
       delete this._windows[id];
       if (this._focusedId === id) {
         this._focusedId = null;
-        /* Focus next available */
-        var ids = Object.keys(this._windows);
-        if (ids.length > 0) {
-          var last = ids[ids.length - 1];
-          this.focusWindow(last);
+        var visibleWins = Object.values(this._windows).filter(function(w) { return !w.minimized; });
+        if (visibleWins.length > 0) {
+          var topWin = visibleWins.reduce(function(a, b) { return (b._zIdx||0) > (a._zIdx||0) ? b : a; });
+          this.focusWindow(topWin.id);
         }
       }
       this._updateTaskbar();
@@ -301,13 +302,10 @@
       win.minimized = true;
       if (this._focusedId === id) {
         this._focusedId = null;
-        /* Focus next visible window */
-        var self = this;
-        Object.keys(this._windows).forEach(function(kid) {
-          if (kid !== id && !self._windows[kid].minimized) {
-            self.focusWindow(kid);
-          }
+        var firstVisible = Object.keys(this._windows).find(function(kid) {
+          return kid !== id && !self._windows[kid].minimized;
         });
+        if (firstVisible) this.focusWindow(firstVisible);
       }
       this._updateTaskbar();
     },
@@ -336,24 +334,22 @@
       if (!el) return;
 
       if (win.maximized) {
-        if (win.prevRect) {
-          win.x = win.prevRect.x;
-          win.y = win.prevRect.y;
-          win.w = win.prevRect.w;
-          win.h = win.prevRect.h;
-        }
+        if (win.prevRect) { win.x = win.prevRect.x; win.y = win.prevRect.y; win.w = win.prevRect.w; win.h = win.prevRect.h; }
         win.maximized = false;
         this._applyWindowRect(id);
         el.style.borderRadius = '';
+        var maxBtn = el.querySelector('.win-max');
+        if (maxBtn) { maxBtn.innerHTML = '&#9723;'; maxBtn.title = 'Maximize'; }
       } else {
         win.prevRect = { x: win.x, y: win.y, w: win.w, h: win.h };
-        win.x = 0;
-        win.y = 0;
+        win.x = 0; win.y = 0;
         win.w = window.innerWidth;
-        win.h = window.innerHeight - 48;
+        win.h = window.innerHeight - getTaskbarHeight();
         win.maximized = true;
         this._applyWindowRect(id);
         el.style.borderRadius = '0';
+        var maxBtn2 = el.querySelector('.win-max');
+        if (maxBtn2) { maxBtn2.innerHTML = '&#10064;'; maxBtn2.title = 'Restore'; }
       }
     },
 
@@ -367,12 +363,18 @@
       el.style.height = win.h + 'px';
     },
 
-    setWindowContent: function(id, html) {
+    setWindowContent: function(id, node) {
       var win = this._windows[id];
       if (!win) return;
-      win.content = html;
       var body = document.querySelector('#' + id + ' .win-body');
-      if (body) body.innerHTML = html;
+      if (!body) return;
+      if (typeof node === 'string') {
+        win.content = node;
+        body.innerHTML = node;
+      } else {
+        win.content = '';
+        body.replaceChildren(node);
+      }
     },
 
     updateWindowTitle: function(id, title) {
@@ -644,6 +646,19 @@
       return div.innerHTML;
     }
   };
+
+  function getTaskbarHeight() {
+    return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--taskbar-h')) || 48;
+  }
+
+  window.addEventListener('resize', function() {
+    Object.values(BOS._windows).forEach(function(win) {
+      if (!win.maximized) return;
+      win.w = window.innerWidth;
+      win.h = window.innerHeight - getTaskbarHeight();
+      BOS._applyWindowRect(win.id);
+    });
+  });
 
   /* ─────────────────────────────────────────────────
      BOOT SEQUENCE
@@ -955,6 +970,12 @@
     BOS.toggleStartMenu();
   });
 
+  document.getElementById('startMenuPower').addEventListener('click', function(e) {
+    e.stopPropagation();
+    BOS.closeStartMenu();
+    powerMenu.classList.toggle('open');
+  });
+
   /* Close start menu on outside click — now handled in power menu click handler */
 
   /* ─────────────────────────────────────────────────
@@ -983,12 +1004,23 @@
      ───────────────────────────────────────────────── */
   var searchInput = document.getElementById('searchInput');
   searchInput.addEventListener('input', function() {
-    var q = this.value.toLowerCase();
+    var q = this.value.toLowerCase().trim();
     var apps = document.querySelectorAll('.desktop-icon, .start-menu-app');
     apps.forEach(function(app) {
       var name = (app.querySelector('.icon-label, .sma-name') || {}).textContent || '';
-      app.style.display = name.toLowerCase().includes(q) ? '' : 'none';
+      if (q && !name.toLowerCase().includes(q)) {
+        app.classList.add('search-hidden');
+      } else {
+        app.classList.remove('search-hidden');
+      }
     });
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.target === searchInput) return;
+    if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      searchInput.focus();
+    }
   });
 
   /* ─────────────────────────────────────────────────
@@ -1056,7 +1088,7 @@
         setTimeout(function() {
           document.getElementById('desktop').style.display = 'none';
           document.getElementById('taskbar').style.display = 'none';
-          overlay.innerHTML = '<div style="font-size:48px;margin-bottom:16px;">⏻</div><div style="font-size:18px;margin-bottom:24px;">B-OS is powered off</div><button id="powerOn" style="background:#0078d4;color:#fff;border:none;padding:12px 32px;border-radius:4px;cursor:pointer;font-size:14px;">Power On</button>';
+          overlay.innerHTML = '<div class="shutdown-icon">⏻</div><div class="shutdown-msg">B-OS is powered off</div><button id="powerOn" class="power-on-btn">Power On</button>';
           document.getElementById('powerOn').addEventListener('click', function() { location.reload(); });
         }, 1500);
       }
@@ -1260,9 +1292,16 @@
      ───────────────────────────────────────────────── */
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
+      if (document.activeElement === searchInput && searchInput.value) {
+        searchInput.value = '';
+        searchInput.dispatchEvent(new Event('input'));
+        searchInput.blur();
+        return;
+      }
       BOS.closeStartMenu();
       document.getElementById('confirmOverlay').classList.remove('active');
       calPopup.classList.remove('open');
+      powerMenu.classList.remove('open');
     }
     if (e.altKey && e.key === 'Tab') { e.preventDefault(); showAltTab(); }
     if (e.key === 'Meta' || (e.ctrlKey && e.key === 'Escape')) {
