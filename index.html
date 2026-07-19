@@ -3,13 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="B-OS is a browser-based desktop simulation with windowed apps, optional local backend integration, and an extensible web interface.">
+<meta name="theme-color" content="#050510">
+<meta name="color-scheme" content="dark">
+<meta property="og:title" content="B-OS — The Future Runs Here">
+<meta property="og:description" content="A browser-based desktop simulation built for the web.">
+<meta property="og:type" content="website">
 <title>B-OS — The Future Runs Here</title>
 <script>
 document.documentElement.classList.add('js');
-window.addEventListener('error', function() {
-  document.documentElement.classList.remove('js', 'custom-cursor', 'cursor-ready');
+window.addEventListener('error', function(event) {
+  console.error('B-OS portal error:', event.error || event.message);
   var bootOverlay = document.getElementById('bootOverlay');
-  if (bootOverlay) {
+  if (bootOverlay && !bootOverlay.classList.contains('hidden')) {
+    bootOverlay.classList.add('hidden');
+  }
+});
+
+window.addEventListener('unhandledrejection', function(event) {
+  console.error('Unhandled promise rejection:', event.reason);
+  var bootOverlay = document.getElementById('bootOverlay');
+  if (bootOverlay && !bootOverlay.classList.contains('hidden')) {
     bootOverlay.classList.add('hidden');
   }
 });
@@ -42,7 +56,8 @@ window.addEventListener('error', function() {
   /* Text */
   --text-bright: #e8eaff;
   --text-mid:    #9999cc;
-  --text-dim:    #555580;
+  --text-dim:    #7b7ba8;
+  --border-dim:  #555580;
 
   /* Spacing (4px grid) */
   --sp-1: 4px;   --sp-2: 8px;   --sp-3: 12px;
@@ -102,6 +117,17 @@ body {
 
 a { color: var(--cyan); text-decoration: none; }
 a:hover { text-shadow: var(--glow-cyan); }
+
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 4px;
+  box-shadow: 0 0 16px var(--cyan-dim);
+}
+
+.feature-card:focus-within,
+.install-step:focus-within,
+.spec-card:focus-within { border-color: var(--cyan); }
 
 .skip-link {
   position: fixed;
@@ -292,6 +318,7 @@ html.cursor-ready .cursor-ring { opacity: 1; }
 section {
   position: relative;
   padding: var(--sp-24) 0;
+  scroll-margin-top: 80px;
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -617,6 +644,13 @@ section {
   padding: var(--sp-1) var(--sp-3);
   border-radius: 2px;
   margin-top: var(--sp-3);
+}
+
+.timeline-phase-eta {
+  margin-top: var(--sp-2);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
 }
 
 .status-done {
@@ -1016,6 +1050,12 @@ section {
   padding: var(--sp-24) 0;
 }
 
+.install-intro {
+  max-width: 560px;
+  margin: var(--sp-4) auto 0;
+  text-align: center;
+}
+
 .install-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1339,11 +1379,11 @@ section {
   </div>
 
   <!-- Decorative terminal -->
-  <div class="hero-terminal reveal reveal-delay-4">
+  <div class="hero-terminal reveal reveal-delay-4" aria-hidden="true">
     <div class="hero-terminal-bar">
-      <div class="hero-terminal-dot" style="background:var(--red)"></div>
-      <div class="hero-terminal-dot" style="background:var(--amber)"></div>
-      <div class="hero-terminal-dot" style="background:var(--green)"></div>
+      <div class="hero-terminal-dot" style="background:var(--red)" aria-hidden="true"></div>
+      <div class="hero-terminal-dot" style="background:var(--amber)" aria-hidden="true"></div>
+      <div class="hero-terminal-dot" style="background:var(--green)" aria-hidden="true"></div>
       <div class="hero-terminal-title">b-os ~ terminal</div>
     </div>
     <div class="hero-terminal-body">
@@ -1375,7 +1415,7 @@ section {
     <!-- Files -->
     <div class="feature-card reveal reveal-delay-1">
       <div class="feature-icon feature-icon--files">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
           <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
         </svg>
       </div>
@@ -1387,7 +1427,7 @@ section {
     <!-- Games -->
     <div class="feature-card reveal reveal-delay-2">
       <div class="feature-icon feature-icon--games">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
           <rect x="2" y="6" width="20" height="12" rx="3"/>
           <line x1="12" y1="2" x2="12" y2="6"/>
           <line x1="8" y1="10" x2="16" y2="10"/>
@@ -1404,7 +1444,7 @@ section {
     <!-- AI -->
     <div class="feature-card reveal reveal-delay-3">
       <div class="feature-icon feature-icon--ai">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
           <path d="M12 2a4 4 0 014 4c0 1.5-1 2.5-2 3l1 5h-6l1-5c-1-.5-2-1.5-2-3a4 4 0 014-4z"/>
           <line x1="10" y1="18" x2="14" y2="18"/>
           <line x1="10" y1="21" x2="14" y2="21"/>
@@ -1420,7 +1460,7 @@ section {
     <!-- Browser -->
     <div class="feature-card reveal reveal-delay-4">
       <div class="feature-icon feature-icon--browser">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
           <circle cx="12" cy="12" r="10"/>
           <line x1="2" y1="12" x2="22" y2="12"/>
           <path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
@@ -1434,7 +1474,7 @@ section {
     <!-- Settings -->
     <div class="feature-card reveal reveal-delay-5">
       <div class="feature-icon feature-icon--settings">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
           <circle cx="12" cy="12" r="3"/>
           <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
         </svg>
@@ -1447,7 +1487,7 @@ section {
     <!-- Terminal -->
     <div class="feature-card reveal reveal-delay-6">
       <div class="feature-icon feature-icon--terminal">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
           <polyline points="4 17 10 11 4 5"/>
           <line x1="12" y1="19" x2="20" y2="19"/>
         </svg>
@@ -1460,7 +1500,7 @@ section {
     <!-- Clock -->
     <div class="feature-card reveal reveal-delay-7">
       <div class="feature-icon feature-icon--clock">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
           <circle cx="12" cy="12" r="10"/>
           <polyline points="12 6 12 12 16 14"/>
         </svg>
@@ -1473,14 +1513,14 @@ section {
     <!-- Exit -->
     <div class="feature-card reveal reveal-delay-8">
       <div class="feature-icon feature-icon--exit">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
           <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
           <polyline points="16 17 21 12 16 7"/>
           <line x1="21" y1="12" x2="9" y2="12"/>
         </svg>
       </div>
       <div class="feature-name">Exit</div>
-      <div class="feature-desc">Top-right power button. Gracefully shut down and return to your host OS. No strings attached.</div>
+      <div class="feature-desc">End the B-OS session, close active app windows, and return to the landing screen.</div>
       <span class="feature-tag feature-tag--core">Core</span>
     </div>
   </div>
@@ -1560,7 +1600,8 @@ section {
       <div class="timeline-phase-name">Phase 03</div>
       <div class="feature-name">Feature Additions</div>
       <div class="timeline-phase-desc">AI integration, browser, games, and beyond.</div>
-      <span class="timeline-phase-status status-future">1-3 Months</span>
+      <span class="timeline-phase-status status-future">Planned</span>
+      <div class="timeline-phase-eta">Estimated: 1–3 months</div>
     </div>
   </div>
 </section>
@@ -1571,10 +1612,10 @@ section {
 <section class="install-section container" id="install">
   <div class="section-header reveal">
     <span class="section-tag">// Get Started</span>
-    <h2 class="heading-lg">Launch <span class="neon-cyan">B-OS</span> in Seconds</h2>
-    <p class="body-lg" style="max-width:560px;margin:var(--sp-4) auto 0;text-align:center;">
-      B-OS runs in your browser. For full system access (Terminal, Files, AI),
-      you'll need our lightweight Python backend running on your machine.
+    <h2 class="heading-lg">Start <span class="neon-cyan">B-OS</span> in a Few Steps</h2>
+    <p class="body-lg install-intro">
+      B-OS runs in your browser. Optional Terminal, Files, and AI features
+      require the lightweight local backend and its configured permissions.
     </p>
   </div>
 
@@ -1584,7 +1625,7 @@ section {
         <div class="install-step-num neon-cyan">01</div>
         <div class="install-step-content">
           <h3>Open the Page</h3>
-          <p>Go to <strong>chenboda01.github.io/B-OS</strong> in Chrome, Firefox, or any modern browser. Click "Get B-OS" to boot into your desktop.</p>
+          <p>Go to <strong>chenboda01.github.io/B-OS</strong> in Chrome, Firefox, or any modern browser. Select "Launch B-OS" to open the desktop.</p>
         </div>
       </div>
       <div class="install-step reveal reveal-delay-2">
@@ -1598,7 +1639,7 @@ section {
         <div class="install-step-num neon-cyan">03</div>
         <div class="install-step-content">
           <h3>Install the Backend</h3>
-          <p>For real Terminal commands and File Manager access, install the Python backend. It connects B-OS to your actual Linux system.</p>
+          <p>For approved local terminal operations and File Manager access, install the Python backend. Access remains limited by its configured permissions.</p>
         </div>
       </div>
       <div class="install-step reveal reveal-delay-4">
@@ -1612,9 +1653,9 @@ section {
 
     <div class="install-terminal reveal reveal-delay-3">
       <div class="install-terminal-bar">
-        <div class="hero-terminal-dot" style="background:var(--red)"></div>
-        <div class="hero-terminal-dot" style="background:var(--amber)"></div>
-        <div class="hero-terminal-dot" style="background:var(--green)"></div>
+        <div class="hero-terminal-dot" style="background:var(--red)" aria-hidden="true"></div>
+        <div class="hero-terminal-dot" style="background:var(--amber)" aria-hidden="true"></div>
+        <div class="hero-terminal-dot" style="background:var(--green)" aria-hidden="true"></div>
         <div class="hero-terminal-title">setup guide</div>
       </div>
       <div class="install-terminal-body">
@@ -1622,21 +1663,24 @@ section {
         <span class="prompt-line">$</span> <span class="cmd-line">git clone https://github.com/Chenboda01/B-OS.git</span><br>
         <span class="prompt-line">$</span> <span class="cmd-line">cd B-OS/server</span><br>
         <br>
+        <span class="comment-line"># Create an isolated environment</span><br>
+        <span class="prompt-line">$</span> <span class="cmd-line">python -m venv .venv</span><br>
+        <span class="prompt-line">$</span> <span class="cmd-line">source .venv/bin/activate</span><br>
+        <br>
         <span class="comment-line"># Install Python dependencies</span><br>
-        <span class="prompt-line">$</span> <span class="cmd-line">pip install -r requirements.txt</span><br>
+        <span class="prompt-line">$</span> <span class="cmd-line">python -m pip install -r requirements.txt</span><br>
         <br>
         <span class="comment-line"># Start the backend server</span><br>
         <span class="prompt-line">$</span> <span class="cmd-line">python main.py</span><br>
         <span class="output-line">B-OS Backend Server v1.0</span><br>
-        <span class="output-line">http://localhost:8765</span><br>
+        <span class="output-line">http://127.0.0.1:8765</span><br>
         <br>
         <span class="comment-line"># Optional: Enable AI Chat</span><br>
         <span class="prompt-line">$</span> <span class="cmd-line">export QWEN_API_KEY=your_key_here</span><br>
         <span class="prompt-line">$</span> <span class="cmd-line">python main.py</span><br>
         <br>
-        <span class="comment-line"># Open os/index.html in your browser</span><br>
-        <span class="highlight-line">[OK]</span> <span class="output-line">Backend connected</span><br>
-        <span class="highlight-line">[OK]</span> <span class="output-line">System ready</span><br>
+        <span class="comment-line"># Expected output</span><br>
+        <span class="highlight-line">[OK]</span> <span class="output-line">Backend listening on http://127.0.0.1:8765</span><br>
       </div>
     </div>
   </div>
@@ -1662,24 +1706,23 @@ section {
      JAVASCRIPT
      ═══════════════════════════════════════════════════ -->
 <script>
-(function() {
-  'use strict';
+'use strict';
 
+try {
   /* ─────────────────────────────────────────────────
      BOOT SEQUENCE
      ───────────────────────────────────────────────── */
   const bootLines = [
-    'B-OS BIOS v0.1.0',
-    'Initializing web runtime...',
-    'Loading kernel modules.......... OK',
-    'Mounting virtual file system.... OK',
-    'Starting window manager......... OK',
-    'Initializing terminal (bsh).... OK',
-    'Checking AI service.............',
-    'Loading desktop environment..... OK',
+    'B-OS Portal v0.1.0',
+    'Initializing web interface...',
+    'Loading visual modules......... OK',
+    'Loading navigation............. OK',
+    'Loading project information.... OK',
+    'Checking optional services......',
+    'Preparing launch controls...... OK',
     'Portal interface ready.',
     '',
-    'Launching B-OS desktop...'
+    'Welcome to B-OS.'
   ];
 
   const bootText = document.getElementById('bootText');
@@ -1718,20 +1761,28 @@ section {
   const finePointer = window.matchMedia('(pointer: fine)').matches;
   let mouseX = 0, mouseY = 0;
   let ringX = 0, ringY = 0;
+  let pointerRecorded = false;
 
   if (finePointer && !reduceMotion) {
     document.documentElement.classList.add('custom-cursor');
 
-    document.addEventListener('mousemove', function firstMove() {
-      document.documentElement.classList.add('cursor-ready');
-      document.removeEventListener('mousemove', firstMove);
-    });
-
-    document.addEventListener('mousemove', function(e) {
+    document.addEventListener('pointermove', function(e) {
       mouseX = e.clientX;
       mouseY = e.clientY;
       dot.style.left = mouseX + 'px';
       dot.style.top = mouseY + 'px';
+      pointerRecorded = true;
+      document.documentElement.classList.add('cursor-ready');
+    });
+
+    document.addEventListener('pointerleave', function() {
+      document.documentElement.classList.remove('cursor-ready');
+    });
+
+    document.addEventListener('pointerenter', function() {
+      if (pointerRecorded) {
+        document.documentElement.classList.add('cursor-ready');
+      }
     });
 
     function animateRing() {
@@ -1801,22 +1852,51 @@ section {
     const controller = new AbortController();
     const timeout = setTimeout(function() {
       controller.abort();
-    }, 1500);
+    }, 2000);
+
+    systemStatus.textContent = 'Checking Backend';
+    systemStatus.classList.remove('online');
 
     try {
-      const response = await fetch('http://127.0.0.1:8765/health', {
+      const response = await fetch('http://127.0.0.1:8765/api/health', {
+        method: 'GET',
         cache: 'no-store',
-        signal: controller.signal
+        signal: controller.signal,
+        headers: {
+          Accept: 'application/json'
+        }
       });
 
       if (!response.ok) {
-        throw new Error('Backend unavailable');
+        const responseError = new Error('HTTP ' + response.status);
+        responseError.name = 'BackendHttpError';
+        throw responseError;
+      }
+
+      let data;
+      try {
+        data = await response.json();
+      } catch (error) {
+        const responseError = new Error('Invalid health response');
+        responseError.name = 'BackendResponseError';
+        throw responseError;
+      }
+
+      if (data.status !== 'ok' || data.service !== 'b-os-backend') {
+        const responseError = new Error('Invalid health response');
+        responseError.name = 'BackendResponseError';
+        throw responseError;
       }
 
       systemStatus.textContent = 'Backend Online';
       systemStatus.classList.add('online');
     } catch (error) {
-      systemStatus.textContent = 'Browser Mode';
+      const failureStates = {
+        AbortError: 'Backend Timeout',
+        BackendHttpError: 'Backend Error',
+        BackendResponseError: 'Invalid Backend'
+      };
+      systemStatus.textContent = failureStates[error.name] || 'Browser Mode';
       systemStatus.classList.remove('online');
     } finally {
       clearTimeout(timeout);
@@ -1833,7 +1913,17 @@ section {
     nav.classList.toggle('scrolled', window.scrollY > 50);
   }, { passive: true });
 
-})();
+} catch (error) {
+  console.error('Portal initialization failed:', error);
+  document.documentElement.classList.remove('custom-cursor', 'cursor-ready');
+  document.querySelectorAll('.reveal').forEach(function(el) {
+    el.classList.add('visible');
+  });
+  const bootOverlay = document.getElementById('bootOverlay');
+  if (bootOverlay) {
+    bootOverlay.classList.add('hidden');
+  }
+}
 </script>
 
 </body>
