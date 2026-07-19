@@ -914,7 +914,7 @@
         }
       }
       ctx.globalAlpha = 1;
-      requestAnimationFrame(draw);
+      if (!document.hidden && canvas.style.display !== 'none') requestAnimationFrame(draw);
     }
 
     draw();
@@ -1216,6 +1216,7 @@
      ───────────────────────────────────────────────── */
   var ctxMenu = document.getElementById('desktopContextMenu');
   document.getElementById('desktop').addEventListener('contextmenu', function(e) {
+    if (e.target.closest('.bos-window')) return;
     e.preventDefault();
     ctxMenu.style.display = 'block';
     ctxMenu.style.left = e.clientX + 'px';
@@ -1239,32 +1240,34 @@
      ───────────────────────────────────────────────── */
   var altTabOpen = false;
   var altTabIdx = 0;
+  var altTabWindows = [];
   var altTabOverlay = document.getElementById('altTabOverlay');
   var altTabContent = document.getElementById('altTabContent');
   function showAltTab() {
-    var wins = Object.keys(BOS._windows).filter(function(id) { return !BOS._windows[id].minimized; });
+    var wins = Object.values(BOS._windows).sort(function(a, b) { return (b._lastFocused||0) - (a._lastFocused||0); });
     if (!wins.length) return;
+    altTabWindows = wins;
     altTabOpen = true;
+    altTabIdx = 0;
     altTabOverlay.classList.add('active');
-    altTabIdx = (altTabIdx >= wins.length) ? 0 : altTabIdx;
-    renderAltTab(wins);
+    renderAltTab();
   }
-  function renderAltTab(wins) {
+  function renderAltTab() {
     var html = '';
-    wins.forEach(function(id, i) {
-      var w = BOS._windows[id];
-      html += '<div class="alt-tab-item'+(i===altTabIdx?' selected':'')+'">'+w.icon+'<br>'+w.title+'</div>';
+    altTabWindows.forEach(function(w, i) {
+      html += '<div class="alt-tab-item'+(i===altTabIdx?' selected':'')+(w.minimized?' style="opacity:0.5"':'')+'">'+w.icon+'<br>'+w.title+'</div>';
     });
     altTabContent.innerHTML = html;
   }
   function hideAltTab() {
     altTabOpen = false;
     altTabOverlay.classList.remove('active');
-    var wins = Object.keys(BOS._windows).filter(function(id) { return !BOS._windows[id].minimized; });
-    if (wins[altTabIdx]) {
-      BOS.restoreWindow ? BOS.restoreWindow(wins[altTabIdx]) : BOS.focusWindow(wins[altTabIdx]);
-      BOS.focusWindow(wins[altTabIdx]);
+    if (altTabWindows[altTabIdx]) {
+      var w = altTabWindows[altTabIdx];
+      if (w.minimized) BOS.restoreWindow(w.id);
+      BOS.focusWindow(w.id);
     }
+    altTabWindows = [];
   }
 
   /* ─────────────────────────────────────────────────
@@ -1303,7 +1306,14 @@
       calPopup.classList.remove('open');
       powerMenu.classList.remove('open');
     }
-    if (e.altKey && e.key === 'Tab') { e.preventDefault(); showAltTab(); }
+    if (e.altKey && e.key === 'Tab') {
+      e.preventDefault();
+      if (!altTabOpen) { showAltTab(); }
+      else {
+        altTabIdx = e.shiftKey ? (altTabIdx - 1 + altTabWindows.length) % altTabWindows.length : (altTabIdx + 1) % altTabWindows.length;
+        renderAltTab();
+      }
+    }
     if (e.key === 'Meta' || (e.ctrlKey && e.key === 'Escape')) {
       BOS.toggleStartMenu();
     }
