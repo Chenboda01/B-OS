@@ -471,7 +471,7 @@
           '<div style="font-size:12px;line-height:1.7;color:#9999cc;">' +
             '<span style="color:#e8eaff;font-weight:bold;">' + esc(username) + '@' + esc(hostname) + '</span><br>' +
             '──────────────<br>' +
-            '<span style="color:#555580;">OS:</span>        B-OS v0.1<br>' +
+            '<span style="color:#555580;">OS:</span>        B-OS v0.1.0<br>' +
             '<span style="color:#555580;">Shell:</span>     bsh 2.0<br>' +
             '<span style="color:#555580;">Desktop:</span>   BDE (Browser Desktop Environment)<br>' +
             '<span style="color:#555580;">Terminal:</span>  b-term v2.0<br>' +
@@ -1226,23 +1226,41 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
 // ═══════════════════════════════════════════════════════════════
 (function() {
   var THEMES = {
-    windows:   { accent: '#0078d4', secondary: '#005a9e' },
     cyberpunk: { accent: '#00f0ff', secondary: '#ff00ff' },
     aurora:    { accent: '#00ff88', secondary: '#ffaa00' },
-    dark:      { accent: '#9999cc', secondary: '#555580' }
+    synthwave: { accent: '#ff00ff', secondary: '#00f0ff' },
+    monochrome:{ accent: '#e8eaff', secondary: '#9999cc' }
   };
+
+  function defaultSettings() {
+    return { theme: 'cyberpunk', fontSize: 13, wallpaper: 'particles', serverUrl: API.baseUrl };
+  }
+
+  function normalizeSettings(settings) {
+    var normalized = settings && typeof settings === 'object' ? settings : defaultSettings();
+    if (normalized.theme === 'windows' || !THEMES[normalized.theme]) normalized.theme = 'cyberpunk';
+    if (!normalized.fontSize) normalized.fontSize = 13;
+    if (!normalized.wallpaper) normalized.wallpaper = 'particles';
+    if (!normalized.serverUrl) normalized.serverUrl = API.baseUrl;
+    return normalized;
+  }
 
   function loadSettings() {
     try {
       var raw = localStorage.getItem('bos-settings');
-      return raw ? JSON.parse(raw) : { theme: 'windows', fontSize: 13, wallpaper: 'particles', serverUrl: API.baseUrl };
+      return raw ? normalizeSettings(JSON.parse(raw)) : defaultSettings();
     } catch(e) {
-      return { theme: 'windows', fontSize: 13, wallpaper: 'particles', serverUrl: API.baseUrl };
+      console.warn('Unable to load B-OS settings:', e);
+      return defaultSettings();
     }
   }
 
   function saveSettings(s) {
-    try { localStorage.setItem('bos-settings', JSON.stringify(s)); } catch(e) {}
+    try {
+      localStorage.setItem('bos-settings', JSON.stringify(s));
+    } catch(e) {
+      console.warn('Unable to save B-OS settings:', e);
+    }
   }
 
   function esc(s) {
@@ -1255,7 +1273,7 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
       /* Sidebar tabs */
       '<div style="width:140px;min-width:140px;background:#0a0a1a;border-right:1px solid rgba(0,240,255,0.1);padding:12px 0;">' +
         '<div style="padding:8px 16px;color:#555580;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px;">Settings</div>' +
-        '<div class="set-tab" data-tab="appearance" style="padding:8px 16px;cursor:pointer;color:#00f0ff;background:rgba(0,240,255,0.05);border-left:2px solid #00f0ff;">Appearance</div>' +
+        '<div class="set-tab" data-tab="appearance" style="padding:8px 16px;cursor:pointer;color:var(--cyan);background:var(--cyan-ghost);border-left:2px solid var(--cyan);">Appearance</div>' +
         '<div class="set-tab" data-tab="system" style="padding:8px 16px;cursor:pointer;color:#9999cc;border-left:2px solid transparent;">System</div>' +
         (window.BOS_Auth && window.BOS_Auth.isAdmin() ? '<div class="set-tab" data-tab="accounts" style="padding:8px 16px;cursor:pointer;color:#9999cc;border-left:2px solid transparent;">Accounts</div>' : '') +
         '<div class="set-tab" data-tab="updates" style="padding:8px 16px;cursor:pointer;color:#9999cc;border-left:2px solid transparent;">Updates</div>' +
@@ -1292,7 +1310,7 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
       '<div style="margin-bottom:16px;">' +
         '<div style="color:#555580;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;">Font Size: <span id="set-fontsize-val">' + s.fontSize + 'px</span></div>' +
         '<input id="set-fontsize" type="range" min="10" max="20" value="' + s.fontSize + '" ' +
-          'style="width:100%;accent-color:#00f0ff;" />' +
+          'style="width:100%;accent-color:var(--cyan);" />' +
       '</div>' +
       /* Wallpaper */
       '<div style="margin-bottom:16px;">' +
@@ -1301,7 +1319,7 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
           ['particles','grid','none'].map(function(w) {
             var active = s.wallpaper === w;
             return '<div class="set-wallpaper-opt" data-wallpaper="' + w + '" ' +
-              'style="padding:8px 14px;border:1px solid ' + (active ? '#00f0ff' : '#181848') + ';border-radius:4px;cursor:pointer;color:' + (active ? '#00f0ff' : '#9999cc') + ';text-transform:capitalize;transition:all 0.2s;">' + w + '</div>';
+              'style="padding:8px 14px;border:1px solid ' + (active ? 'var(--cyan)' : '#181848') + ';border-radius:4px;cursor:pointer;color:' + (active ? 'var(--cyan)' : '#9999cc') + ';text-transform:capitalize;transition:all 0.2s;">' + w + '</div>';
           }).join('') +
         '</div>' +
       '</div>' +
@@ -1371,14 +1389,14 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
           '<input id="account-password" type="password" placeholder="Temporary password" autocomplete="new-password" style="background:#050510;border:1px solid #181848;color:#e8eaff;padding:8px;font-family:monospace;">' +
           '<select id="account-role" style="background:#050510;border:1px solid #181848;color:#e8eaff;padding:8px;font-family:monospace;"><option value="user">Standard user</option><option value="admin">Administrator</option></select>' +
         '</div>' +
-        '<button type="submit" style="background:#0078d4;color:#fff;border:0;padding:8px 16px;border-radius:3px;cursor:pointer;font-size:11px;">Create Account</button>' +
+        '<button type="submit" style="background:var(--cyan);color:#050510;border:0;padding:8px 16px;border-radius:3px;cursor:pointer;font-size:11px;">Create Account</button>' +
         '<span id="account-status" style="margin-left:10px;color:#9999cc;font-size:10px;"></span>' +
       '</form>' +
       '<div style="display:flex;flex-direction:column;gap:8px;">' + users.map(function(user) {
         var protectedAccount = user.owner || user.username === current.username;
         var roleColor = user.role === 'admin' ? '#ffaa00' : '#00f0ff';
         return '<div class="account-row" data-username="' + esc(user.username) + '" style="display:flex;align-items:center;gap:10px;padding:12px;border:1px solid #181848;background:#080818;border-radius:4px;">' +
-          '<div style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:rgba(0,120,212,0.18);color:#00f0ff;">' + esc(user.displayName.charAt(0).toUpperCase()) + '</div>' +
+          '<div style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--cyan-ghost);color:var(--cyan);">' + esc(user.displayName.charAt(0).toUpperCase()) + '</div>' +
           '<div style="flex:1;min-width:0;"><div style="color:#e8eaff;font-size:12px;font-weight:bold;">' + esc(user.displayName) + (user.owner ? ' <span style="color:#00ff88;font-size:9px;">OWNER</span>' : '') + '</div>' +
           '<div style="color:#555580;font-size:10px;">@' + esc(user.username) + ' · <span style="color:' + roleColor + ';">' + esc(user.role) + '</span>' + (user.disabled ? ' · <span style="color:#ff3355;">disabled</span>' : '') + '</div></div>' +
           '<button data-account-action="reset" data-username="' + esc(user.username) + '" style="background:#181848;color:#e8eaff;border:1px solid #333;padding:5px 8px;cursor:pointer;font-size:9px;">Reset</button>' +
@@ -1467,7 +1485,7 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
         '<div style="margin-bottom:16px;">' +
           '<div style="color:#555580;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;">API Key</div>' +
           '<input id="set-apikey" type="text" placeholder="Enter QWEN API key..." style="width:100%;background:#050510;border:1px solid #181848;color:#00f0ff;padding:8px 12px;border-radius:2px;font-family:monospace;font-size:11px;outline:none;" />' +
-          '<button id="btn-save-key" style="margin-top:8px;background:#0078d4;color:#fff;border:none;padding:6px 16px;border-radius:4px;cursor:pointer;font-size:11px;">Save Key</button>' +
+          '<button id="btn-save-key" style="margin-top:8px;background:var(--cyan);color:#050510;border:none;padding:6px 16px;border-radius:4px;cursor:pointer;font-size:11px;">Save Key</button>' +
           '<span id="key-status" style="margin-left:8px;font-size:11px;"></span>' +
         '</div>' +
       '<div style="color:#555580;font-size:11px;line-height:1.6;">' +
@@ -1485,9 +1503,9 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
         '<div style="color:#555580;font-size:12px;">Version 0.1.0 — Alpha</div>' +
       '</div>' +
       '<div style="color:#9999cc;font-size:12px;line-height:1.8;margin-bottom:16px;">' +
-        'B-OS is a browser-based operating system simulation that reimagines what a desktop environment can be.<br><br>' +
+        'B-OS is a retro-futuristic cyberpunk desktop simulation that reimagines what a personal workspace can be.<br><br>' +
         'Built with vanilla HTML, CSS, and JavaScript on the frontend.<br>' +
-        'Python Flask backend for system commands, file access, and AI integration.' +
+        'Optional Python Flask backend for restricted system commands, file access, and QWEN-powered AI tools.' +
       '</div>' +
       '<div style="padding:12px;border:1px solid #181848;border-radius:4px;background:#0a0a1a;margin-bottom:12px;">' +
         '<div style="color:#555580;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">Links</div>' +
@@ -1511,9 +1529,9 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
       tab.addEventListener('click', function() {
         var tabName = this.dataset.tab;
         win.querySelectorAll('.set-tab').forEach(function(t) {
-          t.style.color = t.dataset.tab === tabName ? '#00f0ff' : '#9999cc';
-          t.style.background = t.dataset.tab === tabName ? 'rgba(0,240,255,0.05)' : 'transparent';
-          t.style.borderLeftColor = t.dataset.tab === tabName ? '#00f0ff' : 'transparent';
+          t.style.color = t.dataset.tab === tabName ? 'var(--cyan)' : '#9999cc';
+          t.style.background = t.dataset.tab === tabName ? 'var(--cyan-ghost)' : 'transparent';
+          t.style.borderLeftColor = t.dataset.tab === tabName ? 'var(--cyan)' : 'transparent';
         });
         if (tabName === 'appearance') { contentEl.innerHTML = buildAppearancePanel(settings); bindAppearanceEvents(win, contentEl, settings); }
         else if (tabName === 'system') { contentEl.innerHTML = buildSystemPanel(); checkSystemHealth(win); bindSystemEvents(win, contentEl, settings); }
@@ -1533,10 +1551,8 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
         settings.theme = this.dataset.theme;
         saveSettings(settings);
         window.applyTheme(settings.theme);
-        contentEl.querySelectorAll('.set-theme-opt').forEach(function(o) {
-          o.style.borderColor = o.dataset.theme === settings.theme ? '#00f0ff' : '#181848';
-          o.style.color = o.dataset.theme === settings.theme ? '#00f0ff' : '#9999cc';
-        });
+        contentEl.innerHTML = buildAppearancePanel(settings);
+        bindAppearanceEvents(win, contentEl, settings);
       });
     });
 
@@ -1558,8 +1574,8 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
         saveSettings(settings);
         applyWallpaper(settings.wallpaper);
         contentEl.querySelectorAll('.set-wallpaper-opt').forEach(function(o) {
-          o.style.borderColor = o.dataset.wallpaper === settings.wallpaper ? '#00f0ff' : '#181848';
-          o.style.color = o.dataset.wallpaper === settings.wallpaper ? '#00f0ff' : '#9999cc';
+          o.style.borderColor = o.dataset.wallpaper === settings.wallpaper ? 'var(--cyan)' : '#181848';
+          o.style.color = o.dataset.wallpaper === settings.wallpaper ? 'var(--cyan)' : '#9999cc';
         });
       });
     });
@@ -1580,12 +1596,12 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
     return '<div id="panel-updates">' +
       '<div style="color:#e8eaff;font-size:14px;font-weight:bold;margin-bottom:16px;">Software Update</div>' +
       '<div style="padding:16px;border:1px solid #181848;border-radius:4px;background:#0a0a1a;margin-bottom:16px;text-align:center;">' +
-        '<div style="font-size:24px;font-weight:bold;color:#00f0ff;margin-bottom:4px;">B-OS v0.2.0</div>' +
+        '<div style="font-size:24px;font-weight:bold;color:#00f0ff;margin-bottom:4px;">B-OS v0.1.0</div>' +
         '<div id="update-status" style="color:#00ff88;font-size:11px;margin-bottom:12px;">Your system is up to date.</div>' +
-        '<button id="btn-check-updates" style="background:#0078d4;color:#fff;border:none;padding:8px 24px;border-radius:4px;cursor:pointer;font-size:12px;">Check for Updates</button>' +
+        '<button id="btn-check-updates" style="background:var(--cyan);color:#050510;border:none;padding:8px 24px;border-radius:4px;cursor:pointer;font-size:12px;">Check for Updates</button>' +
         '<div id="update-progress" style="margin-top:12px;display:none;">' +
           '<div style="height:6px;background:#181848;border-radius:3px;overflow:hidden;">' +
-            '<div id="update-bar" style="height:100%;width:0;background:linear-gradient(90deg,#0078d4,#00f0ff);border-radius:3px;transition:width 0.3s;"></div>' +
+            '<div id="update-bar" style="height:100%;width:0;background:linear-gradient(90deg,var(--magenta),var(--cyan));border-radius:3px;transition:width 0.3s;"></div>' +
           '</div>' +
           '<div id="update-label" style="color:#9999cc;font-size:11px;margin-top:6px;">Checking for updates...</div>' +
         '</div>' +
@@ -1959,7 +1975,7 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
   function createUI() {
     return '<div class="bos-app" style="display:flex;flex-direction:column;height:100%;background:#050510;">' +
       '<div style="display:flex;gap:4px;padding:4px 8px;background:#0a0a1a;border-bottom:1px solid rgba(255,255,255,0.05);">' +
-        '<button id="np-save" style="background:#0078d4;color:#fff;border:none;padding:4px 12px;border-radius:2px;cursor:pointer;font-size:11px;">Save</button>' +
+        '<button id="np-save" style="background:var(--cyan);color:#050510;border:none;padding:4px 12px;border-radius:2px;cursor:pointer;font-size:11px;">Save</button>' +
         '<button id="np-load" style="background:#181848;color:#ccc;border:none;padding:4px 12px;border-radius:2px;cursor:pointer;font-size:11px;">Load</button>' +
       '</div>' +
       '<textarea id="np-text" style="flex:1;background:#050510;color:#e8eaff;border:none;outline:none;resize:none;padding:12px;font-family:monospace;font-size:13px;"></textarea>' +
@@ -1980,7 +1996,7 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
     function row(icon,label,id,on) {
       return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.03);">' +
         '<span>'+icon+' '+label+'</span>' +
-        '<div class="qs-toggle" data-id="'+id+'" style="width:36px;height:20px;border-radius:10px;cursor:pointer;transition:0.2s;background:'+(on?'#0078d4':'#333')+';position:relative;">' +
+        '<div class="qs-toggle" data-id="'+id+'" style="width:36px;height:20px;border-radius:10px;cursor:pointer;transition:0.2s;background:'+(on?'var(--cyan)':'#181848')+';position:relative;">' +
           '<div style="width:16px;height:16px;border-radius:50%;background:#fff;position:absolute;top:2px;left:'+(on?'18px':'2px')+';transition:0.2s;"></div>' +
         '</div></div>';
     }
@@ -1997,7 +2013,7 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
         var id = this.dataset.id;
         toggles[id] = !toggles[id];
         var on = toggles[id];
-        this.style.background = on ? '#0078d4' : '#333';
+        this.style.background = on ? 'var(--cyan)' : '#181848';
         this.querySelector('div').style.left = on ? '18px' : '2px';
         showToast(id.charAt(0).toUpperCase()+id.slice(1), on?'On':'Off');
       });
@@ -2012,7 +2028,7 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
   function createUI() {
     return '<div class="bos-app" style="display:flex;flex-direction:column;height:100%;background:#050510;">' +
       '<div style="display:flex;gap:4px;padding:4px 8px;background:#0a0a1a;border-bottom:1px solid rgba(255,255,255,0.05);">' +
-        '<button class="pt-color" data-c="#e8eaff" style="width:20px;height:20px;border-radius:50%;background:#e8eaff;border:2px solid #0078d4;cursor:pointer;"></button>' +
+        '<button class="pt-color" data-c="#e8eaff" style="width:20px;height:20px;border-radius:50%;background:#e8eaff;border:2px solid var(--cyan);cursor:pointer;"></button>' +
         '<button class="pt-color" data-c="#ff3355" style="width:20px;height:20px;border-radius:50%;background:#ff3355;border:2px solid transparent;cursor:pointer;"></button>' +
         '<button class="pt-color" data-c="#00f0ff" style="width:20px;height:20px;border-radius:50%;background:#00f0ff;border:2px solid transparent;cursor:pointer;"></button>' +
         '<button class="pt-color" data-c="#00ff88" style="width:20px;height:20px;border-radius:50%;background:#00ff88;border:2px solid transparent;cursor:pointer;"></button>' +
@@ -2035,7 +2051,7 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
     win.querySelector('#pt-clear').addEventListener('click', function() { ctx.fillStyle='#fff'; ctx.fillRect(0,0,canvas.width,canvas.height); });
     win.querySelector('#pt-size').addEventListener('input', function() { size=parseInt(this.value); });
     win.querySelectorAll('.pt-color').forEach(function(b) {
-      b.addEventListener('click', function() { color=this.dataset.c; win.querySelectorAll('.pt-color').forEach(function(x){x.style.borderColor='transparent';}); this.style.borderColor='#0078d4'; });
+      b.addEventListener('click', function() { color=this.dataset.c; win.querySelectorAll('.pt-color').forEach(function(x){x.style.borderColor='transparent';}); this.style.borderColor='var(--cyan)'; });
     });
   }
   function launch() { var w = BOS.createWindow({title:'Paint',icon:'🎨',width:600,height:400,content:createUI()}); setupEvents(w); }
@@ -2050,7 +2066,7 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
       '<div style="color:#555;font-size:11px;margin-bottom:16px;">Coming soon — stream your music</div>' +
       '<div style="display:flex;gap:12px;">' +
         '<button style="background:#181848;border:1px solid #333;color:#ccc;padding:8px 16px;border-radius:4px;cursor:pointer;font-size:12px;">⏮</button>' +
-        '<button style="background:#0078d4;border:none;color:#fff;padding:8px 16px;border-radius:4px;cursor:pointer;font-size:14px;">▶</button>' +
+        '<button style="background:var(--cyan);border:none;color:#050510;padding:8px 16px;border-radius:4px;cursor:pointer;font-size:14px;">▶</button>' +
         '<button style="background:#181848;border:1px solid #333;color:#ccc;padding:8px 16px;border-radius:4px;cursor:pointer;font-size:12px;">⏭</button>' +
       '</div>' +
     '</div>';
@@ -2072,7 +2088,7 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
     var username = user ? user.username : 'not signed in';
     var role = user ? (user.owner ? 'Owner / Administrator' : (user.role === 'admin' ? 'Administrator' : 'Standard User')) : 'Locked';
     return '<div class="bos-app" style="padding:24px;text-align:center;background:#050510;color:#e8eaff;height:100%;overflow-y:auto;">' +
-      '<div style="width:64px;height:64px;border-radius:50%;background:#0078d4;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:28px;">👤</div>' +
+      '<div style="width:64px;height:64px;border-radius:50%;background:var(--cyan-ghost);border:1px solid var(--cyan);box-shadow:var(--glow-cyan);margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:28px;">👤</div>' +
       '<div style="font-size:16px;font-weight:bold;margin-bottom:4px;">' + safeText(displayName) + '</div>' +
       '<div style="color:#00f0ff;font-size:11px;margin-bottom:4px;">@' + safeText(username) + '</div>' +
       '<div style="color:#555;font-size:11px;margin-bottom:20px;">' + role + '</div>' +
@@ -2125,7 +2141,7 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
       h += '<div style="display:flex;align-items:center;padding:10px;margin-bottom:4px;background:#0a0a1a;border-radius:4px;gap:12px;">'+
         '<div style="font-size:24px;">'+a.i+'</div>'+
         '<div style="flex:1;"><div style="font-weight:bold;">'+a.n+'</div><div style="color:#555;font-size:10px;">'+a.d+'</div></div>'+
-        '<button data-app="'+a.n.toLowerCase()+'" style="background:#0078d4;color:#fff;border:none;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:10px;">Open</button></div>';
+        '<button data-app="'+a.n.toLowerCase()+'" style="background:var(--cyan);color:#050510;border:none;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:10px;">Open</button></div>';
     });
     return h + '</div>';
   }

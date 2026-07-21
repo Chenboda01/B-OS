@@ -10,7 +10,7 @@
     '.adv-input,.adv-select,.adv-textarea{width:100%;background:#050510;color:#e8eaff;border:1px solid #181848;padding:8px;font:11px var(--font-mono);outline:none}' +
     '.adv-textarea{resize:vertical;min-height:90px}' +
     '.adv-input:focus,.adv-textarea:focus,.adv-select:focus{border-color:#00f0ff}' +
-    '.adv-btn{background:#0078d4;color:white;border:0;border-radius:3px;padding:7px 12px;cursor:pointer;font:10px var(--font-mono)}' +
+    '.adv-btn{background:var(--cyan);color:#050510;border:0;border-radius:3px;padding:7px 12px;cursor:pointer;font:10px var(--font-mono);font-weight:bold}' +
     '.adv-btn.alt{background:#181848;color:#00f0ff;border:1px solid #303060}' +
     '.adv-btn.danger{background:rgba(255,51,85,.12);color:#ff3355;border:1px solid rgba(255,51,85,.3)}' +
     '.adv-row{display:flex;gap:8px;align-items:center}.adv-row>*{min-width:0}' +

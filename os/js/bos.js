@@ -578,15 +578,17 @@
 
   /* Theme definitions — used by both index.html and Settings app */
   var THEME_MAP = {
-    windows:   { accent: '#0078d4', secondary: '#005a9e' },
     cyberpunk: { accent: '#00f0ff', secondary: '#ff00ff' },
     aurora:    { accent: '#00ff88', secondary: '#ffaa00' },
-    dark:      { accent: '#9999cc', secondary: '#555580' }
+    synthwave: { accent: '#ff00ff', secondary: '#00f0ff' },
+    monochrome:{ accent: '#e8eaff', secondary: '#9999cc' }
   };
 
   function applyTheme(theme) {
     var root = document.documentElement;
-    var t = THEME_MAP[theme] || THEME_MAP.windows;
+    var normalizedTheme = theme === 'windows' ? 'cyberpunk' : theme;
+    var t = THEME_MAP[normalizedTheme] || THEME_MAP.cyberpunk;
+    root.dataset.theme = THEME_MAP[normalizedTheme] ? normalizedTheme : 'cyberpunk';
     root.style.setProperty('--cyan', t.accent);
     root.style.setProperty('--cyan-dim', t.accent + '66');
     root.style.setProperty('--cyan-ghost', t.accent + '18');
@@ -611,7 +613,7 @@
     }
 
     if (wp === 'solid-blue') {
-      /* Windows default — solid dark blue gradient */
+      /* Legacy solid wallpaper preference */
       if (wallpaper) wallpaper.style.background = '';
       if (canvas) canvas.style.display = 'none';
       if (grid) grid.style.display = 'none';
@@ -652,12 +654,24 @@
   function restoreSettings() {
     try {
       var raw = localStorage.getItem('bos-settings');
-      if (!raw) return;
+      if (!raw) {
+        applyTheme('cyberpunk');
+        applyWallpaper('particles');
+        return;
+      }
       var s = JSON.parse(raw);
-      if (s.theme) applyTheme(s.theme);
+      if (s.theme === 'windows') {
+        s.theme = 'cyberpunk';
+        localStorage.setItem('bos-settings', JSON.stringify(s));
+      }
+      applyTheme(s.theme || 'cyberpunk');
       if (s.wallpaper) applyWallpaper(s.wallpaper);
       if (s.fontSize) applyFontSize(s.fontSize);
-    } catch(e) {}
+    } catch(e) {
+      console.warn('Unable to restore B-OS settings:', e);
+      applyTheme('cyberpunk');
+      applyWallpaper('particles');
+    }
   }
 
   function updateFullscreenLabel() {
@@ -975,12 +989,12 @@
         showPowerState('restart', 'Restarting B-OS', 'Reloading the kernel, services, and application registry.');
         setTimeout(function() { location.reload(); }, 2000);
       } else if (action === 'shutdown') {
-        showPowerState('shutdown', 'Shutting down B-OS', 'Closing services and preserving your Manjaro host session.');
+        showPowerState('shutdown', 'Shutting down B-OS', 'Closing services and preserving your host system session.');
         setTimeout(function() {
           document.getElementById('desktop').style.display = 'none';
           document.getElementById('taskbar').style.display = 'none';
           document.getElementById('exitButton').style.display = 'none';
-          showPowerState('off', 'B-OS is powered off', 'Your Manjaro session is still running. Start B-OS again when you are ready.');
+          showPowerState('off', 'B-OS is powered off', 'Your host system is still running. Start B-OS again when you are ready.');
           setPowerAction('POWER ON', function() { location.reload(); });
         }, 1500);
       }
@@ -988,7 +1002,7 @@
   });
 
   /* ─────────────────────────────────────────────────
-     B-CLOUD AUTHENTICATION AND LOCAL ROLES
+     B-OS AUTHENTICATION AND LOCAL ROLES
      ───────────────────────────────────────────────── */
   var loginOverlay = document.getElementById('loginOverlay');
   var loginMsg = document.getElementById('loginMsg');
@@ -1052,7 +1066,9 @@
         account.disabled = account.disabled === true;
         accounts.push(account);
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Unable to enumerate B-OS accounts:', e);
+    }
     return accounts.sort(function(a, b) {
       if (a.owner !== b.owner) return a.owner ? -1 : 1;
       return a.username.localeCompare(b.username);
@@ -1116,10 +1132,10 @@
   function showLogin(msg) {
     var setupMode = listAccountRecords().length === 0;
     loginOverlay.classList.toggle('setup-mode', setupMode);
-    loginModeBadge.textContent = setupMode ? 'FIRST-RUN OWNER SETUP' : 'SECURE LOGIN';
-    loginMsg.textContent = msg || (setupMode ? 'Create the owner account for this B-OS installation' : 'Sign in to unlock B-OS');
+    loginModeBadge.textContent = setupMode ? 'FIRST-RUN OWNER SETUP' : 'IDENTITY GATE';
+    loginMsg.textContent = msg || (setupMode ? 'Initialize the owner identity for this B-OS installation' : 'Authenticate to enter your workspace');
     loginHint.textContent = setupMode ? 'The first account is the protected owner and can manage all other users.' : 'Accounts can only be created by an administrator after login.';
-    loginButton.textContent = setupMode ? 'Create Owner Account' : 'Unlock';
+    loginButton.textContent = setupMode ? 'Initialize Owner' : 'Enter B-OS';
     loginError.style.display = 'none';
     updateLockClock();
     loginOverlay.classList.add('active');
