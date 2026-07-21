@@ -92,12 +92,16 @@
   <form id="loginBox">
     <div style="text-align:center;margin-bottom:24px;">
       <div class="lock-avatar">☁️</div>
+      <div id="loginModeBadge" class="login-mode-badge">SECURE LOGIN</div>
       <div class="lock-username">B-CLOUD</div>
       <div id="loginMsg" class="lock-subtitle">Sign in to your account</div>
     </div>
+    <input id="loginDisplayName" class="login-field setup-only" type="text" placeholder="Owner display name" autocomplete="name" maxlength="50">
     <input id="loginUser" class="login-field" type="text" placeholder="Username" autocomplete="username" autocapitalize="none" spellcheck="false">
     <input id="loginPass" class="login-field" type="password" placeholder="Password" autocomplete="current-password">
+    <input id="loginConfirm" class="login-field setup-only" type="password" placeholder="Confirm password" autocomplete="new-password">
     <button id="loginBtn" class="login-btn" type="submit">Unlock</button>
+    <div id="loginHint" class="login-hint">Use your B-OS account credentials.</div>
     <div id="loginError"></div>
   </form>
 </div>
