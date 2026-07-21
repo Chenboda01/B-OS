@@ -15,7 +15,8 @@ B-OS/
 │   ├── index.html      # OS shell — desktop, window manager, taskbar, boot animation
 │   └── js/
 │       ├── api.js      # API client — communicates with Python backend (127.0.0.1:8765)
-│       └── apps.js     # OS apps — Terminal, Files, AI Chat, Browser, Settings, Clock, Games
+│       ├── apps.js     # Core OS apps — Terminal, Files, AI Chat, Browser, Settings, Clock, Games
+│       └── advanced-apps.js # Display Manager, Clipboard Manager, and AI Studio
 └── server/             # Python backend
     ├── main.py         # Flask server — terminal exec, file system, AI proxy (QWEN)
     └── requirements.txt
@@ -29,6 +30,7 @@ B-OS/
 - `POST /api/terminal/exec` — execute shell commands (blocked: rm, dd, shutdown, etc.)
 - `GET /api/files/list?path=` — list directory contents (restricted to allowed dirs)
 - `POST /api/files/read` — read file contents (1MB limit)
+- `POST /api/files/write` — write text files under the user's home or `/tmp` (1MB limit)
 - `POST /api/ai/chat` — proxy to QWEN API (requires `QWEN_API_KEY` env var)
 - `GET /api/health` — minimal server status and service identity
 

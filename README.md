@@ -7,6 +7,13 @@ Discription: Our own custom OS. It uses CSS, Java, and Python. It will include e
 🌎 Browser
 ⚙ Settings). There is a exit button on the top right corner on the top right corner to exit this Operating  System and return to your own Operating System. It uses linux so it also includes terminal. It pulls all Manjaro Linux terminal commands. For example, sudo pacman and all those stuff. This is ONLY a desktop product. Phones OS style will come out later. Estimation: 2 years.
 
+## Current implementation
+
+- **Core OS:** File Manager, Terminal, Notepad text editor, Settings, AI Chat, and owner/admin login.
+- **Desktop features:** window snapping, notifications, search, Task Manager, multi-monitor detection, and per-user clipboard history.
+- **AI-native tools:** AI file-edit previews with explicit save, terminal command suggestions with confirmation, coding assistance, browser voice input/output, and multi-step planning workflows.
+- **Safety:** destructive terminal commands are blocked; AI file writes are restricted to the user's home directory and `/tmp`.
+
 
 
 
