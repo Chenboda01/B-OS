@@ -1,41 +1,41 @@
 /* ═══════════════════════════════════════════════════════
-   DESIGN SYSTEM — B-OS Windows Desktop Dark
+   DESIGN SYSTEM — B-OS Cyberpunk Desktop
    ═══════════════════════════════════════════════════════ */
 :root {
-  /* Core palette — Windows Desktop Dark */
-  --void:        #202020;
-  --abyss:       #2b2b2b;
-  --deep:        #333333;
-  --surface:     #2b2b2b;
-  --elevated:    #383838;
+  /* Core palette — shared with the B-OS portal */
+  --void:        #050510;
+  --abyss:       #0a0a1a;
+  --deep:        #0d0d24;
+  --surface:     #111130;
+  --elevated:    #181848;
 
-  /* Accent colors — Windows Blue */
-  --cyan:        #0078d4;
-  --cyan-dim:    #0078d466;
-  --cyan-ghost:  #0078d418;
-  --magenta:     #0078d4;
-  --magenta-dim: #0078d455;
-  --magenta-ghost:#0078d412;
-  --green:       #107c10;
-  --green-dim:   #107c1044;
-  --amber:       #ffb900;
-  --amber-dim:   #ffb90044;
-  --red:         #e81123;
-  --red-dim:     #e8112344;
+  /* Neon accents */
+  --cyan:        #00f0ff;
+  --cyan-dim:    #00f0ff66;
+  --cyan-ghost:  #00f0ff18;
+  --magenta:     #ff00ff;
+  --magenta-dim: #ff00ff55;
+  --magenta-ghost:#ff00ff12;
+  --green:       #00ff88;
+  --green-dim:   #00ff8844;
+  --amber:       #ffaa00;
+  --amber-dim:   #ffaa0044;
+  --red:         #ff3355;
+  --red-dim:     #ff335544;
 
   /* Taskbar specific */
-  --taskbar-bg:  #191919;
-  --tray-bg:     #1e1e1e;
-  --menu-bg:     #202020;
-  --hover-bg:    rgba(255,255,255,0.08);
-  --active-bg:   rgba(255,255,255,0.10);
-  --border-subtle: rgba(255,255,255,0.06);
-  --border-med:  rgba(255,255,255,0.10);
+  --taskbar-bg:  rgba(5,5,16,0.9);
+  --tray-bg:     rgba(10,10,26,0.97);
+  --menu-bg:     rgba(10,10,26,0.97);
+  --hover-bg:    rgba(0,240,255,0.08);
+  --active-bg:   rgba(0,240,255,0.13);
+  --border-subtle: rgba(0,240,255,0.08);
+  --border-med:  rgba(0,240,255,0.18);
 
   /* Text */
-  --text-bright: #ffffff;
-  --text-mid:    #999999;
-  --text-dim:    #666666;
+  --text-bright: #e8eaff;
+  --text-mid:    #9999cc;
+  --text-dim:    #7b7ba8;
   --text-base:   13px;
 
   /* Spacing (4px grid) */
@@ -45,16 +45,16 @@
 
   /* Typography */
   --font-mono:    'Consolas', 'SF Mono', 'Fira Code', 'Courier New', monospace;
-  --font-display: 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+  --font-display: 'Consolas', 'SF Mono', 'Fira Code', 'Courier New', monospace;
 
-  /* Radii — Windows 11 style */
-  --r-sm: 2px;
-  --r-md: 4px;
-  --r-lg: 8px;
+  /* Compact terminal-inspired geometry */
+  --r-sm: 3px;
+  --r-md: 6px;
+  --r-lg: 10px;
 
-  /* Glows — Subtle */
-  --glow-cyan:    0 0 8px var(--cyan-dim);
-  --glow-magenta: 0 0 8px var(--magenta-dim);
+  /* Atmospheric glows */
+  --glow-cyan:    0 0 18px var(--cyan-dim), 0 0 48px var(--cyan-ghost);
+  --glow-magenta: 0 0 18px var(--magenta-dim), 0 0 48px var(--magenta-ghost);
 
   /* Transitions */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
@@ -88,9 +88,10 @@ html, body {
   user-select: text;
 }
 
-::-moz-selection { background: var(--cyan); color: #fff; }
+::selection,
+::-moz-selection {
   background: var(--cyan);
-  color: #fff;
+  color: var(--void);
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -201,7 +202,7 @@ html, body {
 }
 
 /* ═══════════════════════════════════════════════════════
-   DESKTOP BACKGROUND — Clean Windows wallpaper
+   DESKTOP BACKGROUND — Cyberpunk atmosphere
    ═══════════════════════════════════════════════════════ */
 #desktop {
   position: fixed;
@@ -218,7 +219,10 @@ html, body {
 #desktopWallpaper {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, #0d3b66 0%, #142850 40%, #0a1628 100%);
+  background:
+    radial-gradient(ellipse 80% 60% at 18% 24%, rgba(0,240,255,0.06), transparent 58%),
+    radial-gradient(ellipse 70% 70% at 86% 82%, rgba(255,0,255,0.045), transparent 60%),
+    linear-gradient(180deg, #050510 0%, #0a0a1a 52%, #0d0d24 100%);
 }
 
 #desktopWallpaper.wp-particles {
@@ -293,7 +297,7 @@ html, body {
   z-index: 0;
   bottom: -15%;
   right: -10%;
-  background: radial-gradient(circle, rgba(0,120,212,0.06) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--magenta-ghost) 0%, transparent 70%);
   animation: orbFloat 25s ease-in-out infinite alternate;
 }
 
@@ -330,6 +334,7 @@ html, body {
 
 .desktop-icon:hover {
   background: var(--hover-bg);
+  box-shadow: inset 0 0 0 1px var(--cyan-ghost), 0 0 18px var(--cyan-ghost);
 }
 
 .desktop-icon:active {
@@ -344,13 +349,14 @@ html, body {
   justify-content: center;
   font-size: 22px;
   border-radius: var(--r-sm);
-  background: rgba(255,255,255,0.05);
+  background: linear-gradient(145deg, rgba(0,240,255,0.1), rgba(255,0,255,0.05));
   border: 1px solid var(--border-med);
   transition: border-color 0.2s;
 }
 
 .desktop-icon:hover .icon-glyph {
-  border-color: var(--cyan-dim);
+  border-color: var(--cyan);
+  box-shadow: var(--glow-cyan);
 }
 
 .desktop-icon .icon-label {
@@ -470,11 +476,12 @@ html, body {
 
 #confirmDialog .dlg-btn--yes {
   background: var(--cyan);
-  color: #fff;
+  color: var(--void);
 }
 
 #confirmDialog .dlg-btn--yes:hover {
-  background: #1a8bea;
+  background: var(--text-bright);
+  box-shadow: var(--glow-cyan);
 }
 
 #confirmDialog .dlg-btn--no {
@@ -483,12 +490,12 @@ html, body {
 }
 
 #confirmDialog .dlg-btn--no:hover {
-  background: #444;
+  background: var(--surface);
   color: var(--text-bright);
 }
 
 /* ═══════════════════════════════════════════════════════
-   WINDOW MANAGER — Windows 11 style
+   WINDOW MANAGER — Neon terminal chrome
    ═══════════════════════════════════════════════════════ */
 #windowContainer {
   position: absolute;
@@ -502,9 +509,9 @@ html, body {
   display: flex;
   flex-direction: column;
   background: var(--void);
-  border: 1px solid var(--border-med);
+  border: 1px solid rgba(0,240,255,0.2);
   border-radius: var(--r-lg);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  box-shadow: 0 18px 64px rgba(0,0,0,0.66), 0 0 24px rgba(0,240,255,0.035);
   pointer-events: auto;
   overflow: hidden;
   transition: border-color 0.2s, box-shadow 0.2s;
@@ -545,24 +552,24 @@ html, body {
 
 .bos-window.focused {
   border-color: var(--cyan);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  box-shadow: 0 20px 70px rgba(0,0,0,0.72), 0 0 24px var(--cyan-ghost);
 }
 
-/* Title bar — Windows 11 style */
+/* Title bar — luminous command strip */
 .win-titlebar {
   display: flex;
   align-items: center;
   gap: var(--sp-2);
   height: 32px;
   padding: 0 var(--sp-3);
-  background: var(--surface);
+  background: linear-gradient(90deg, rgba(17,17,48,0.98), rgba(10,10,26,0.98));
   border-bottom: 1px solid var(--border-subtle);
   flex-shrink: 0;
   cursor: default;
 }
 
 .bos-window.focused .win-titlebar {
-  background: var(--surface);
+  background: linear-gradient(90deg, rgba(0,240,255,0.1), rgba(17,17,48,0.98) 24%, rgba(255,0,255,0.05));
 }
 
 .win-titlebar-icon {
@@ -572,7 +579,8 @@ html, body {
 
 .win-titlebar-title {
   font-size: 12px;
-  font-weight: 400;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   color: var(--text-dim);
   flex: 1;
   overflow: hidden;
@@ -584,7 +592,7 @@ html, body {
   color: var(--text-bright);
 }
 
-/* Window controls — Windows 11 style */
+/* Window controls */
 .win-controls {
   display: flex;
   flex-shrink: 0;
@@ -640,7 +648,7 @@ html, body {
 .win-resize.sw { bottom: -3px; left: -3px; width: 12px; height: 12px; cursor: sw-resize; }
 
 /* ═══════════════════════════════════════════════════════
-   TASKBAR — Windows 10/11 style
+   TASKBAR — B-OS command dock
    ═══════════════════════════════════════════════════════ */
 #taskbar {
   position: fixed;
@@ -655,7 +663,8 @@ html, body {
   gap: var(--sp-2);
   background: var(--taskbar-bg);
   backdrop-filter: blur(20px);
-  border-top: 1px solid var(--border-subtle);
+  border-top: 1px solid rgba(0,240,255,0.22);
+  box-shadow: 0 -8px 32px rgba(0,0,0,0.36), 0 -1px 18px var(--cyan-ghost);
   opacity: 0;
   transition: opacity 0.5s var(--ease-out);
 }
@@ -672,7 +681,7 @@ html, body {
   border-radius: var(--r-sm);
   border: none;
   background: transparent;
-  color: var(--text-bright);
+  color: var(--cyan);
   cursor: pointer;
   font-size: 16px;
   font-weight: 700;
@@ -683,6 +692,7 @@ html, body {
 
 #startBtn:hover {
   background: var(--hover-bg);
+  text-shadow: 0 0 12px var(--cyan);
 }
 
 #startBtn.active {
@@ -811,7 +821,7 @@ html, body {
 }
 
 /* ═══════════════════════════════════════════════════════
-   SYSTEM TRAY — Windows-style right section
+   SYSTEM TRAY — live system telemetry
    ═══════════════════════════════════════════════════════ */
 #systemTray {
   display: flex;
@@ -1082,7 +1092,7 @@ html, body {
 
 .cal-grid div.cal-today {
   background: var(--cyan);
-  color: #fff;
+  color: var(--void);
   border-radius: var(--r-sm);
 }
 
@@ -1159,7 +1169,8 @@ html, body {
 
 .alt-tab-item.selected {
   border-color: var(--cyan);
-  background: rgba(0,120,212,0.15);
+  background: var(--cyan-ghost);
+  box-shadow: var(--glow-cyan);
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -1380,7 +1391,12 @@ html, body {
   position: fixed;
   inset: 0;
   z-index: 99999;
-  background: linear-gradient(180deg, #0d3b66, #050510);
+  background:
+    linear-gradient(rgba(0,240,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,240,255,0.025) 1px, transparent 1px),
+    radial-gradient(circle at 50% 38%, rgba(0,240,255,0.11), transparent 34%),
+    linear-gradient(180deg, #050510, #0a0a1a 58%, #050510);
+  background-size: 48px 48px, 48px 48px, 100% 100%, 100% 100%;
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -1390,7 +1406,7 @@ html, body {
 
 .lock-time {
   font-size: 48px;
-  color: #fff;
+  color: var(--text-bright);
   font-weight: 200;
   font-family: var(--font-display);
 }
@@ -1402,8 +1418,18 @@ html, body {
 }
 
 .lock-avatar {
-  font-size: 48px;
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--cyan);
+  text-shadow: var(--glow-cyan);
   margin-bottom: var(--sp-4);
+}
+
+.lock-avatar span {
+  color: var(--magenta);
+  text-shadow: var(--glow-magenta);
 }
 
 .login-mode-badge {
@@ -1437,11 +1463,11 @@ html, body {
 
 #loginBox {
   background: rgba(10,10,26,0.95);
-  border: 1px solid var(--border-med);
+  border: 1px solid rgba(0,240,255,0.24);
   border-radius: var(--r-lg);
   padding: var(--sp-8);
   width: 320px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  box-shadow: 0 20px 72px rgba(0,0,0,0.65), 0 0 36px var(--cyan-ghost);
 }
 
 .login-field {
@@ -1473,7 +1499,7 @@ html, body {
   width: 100%;
   padding: var(--sp-3);
   background: var(--cyan);
-  color: #fff;
+  color: var(--void);
   border: none;
   border-radius: var(--r-md);
   cursor: pointer;
@@ -1484,7 +1510,8 @@ html, body {
 }
 
 .login-btn:hover {
-  background: #1a8bea;
+  background: var(--text-bright);
+  box-shadow: var(--glow-cyan);
 }
 
 .login-hint {
@@ -1505,7 +1532,7 @@ html, body {
 }
 
 /* ═══════════════════════════════════════════════════════
-   START MENU — Windows 11 style with power section
+   START MENU — application command palette
    ═══════════════════════════════════════════════════════ */
 #startMenu {
   position: fixed;
@@ -1514,11 +1541,11 @@ html, body {
   transform: translateX(-50%);
   width: 420px;
   max-height: 500px;
-  background: rgba(32,32,32,0.98);
+  background: var(--menu-bg);
   backdrop-filter: blur(24px);
-  border: 1px solid var(--border-med);
+  border: 1px solid rgba(0,240,255,0.24);
   border-radius: var(--r-lg);
-  box-shadow: 0 16px 64px rgba(0,0,0,0.5);
+  box-shadow: 0 18px 72px rgba(0,0,0,0.7), 0 0 28px var(--cyan-ghost);
   z-index: 900;
   display: none;
   flex-direction: column;
@@ -1543,6 +1570,9 @@ html, body {
   font-size: 13px;
   font-weight: 600;
   color: var(--text-bright);
+  font-family: var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 /* Start menu app list */

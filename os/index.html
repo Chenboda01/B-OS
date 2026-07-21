@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#202020">
+<meta name="theme-color" content="#050510">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="B-OS">
 <link rel="manifest" href="manifest.json">
-<title>B-OS Desktop</title>
+<title>B-OS — Cyberpunk Desktop</title>
 <link rel="stylesheet" href="css/os.css">
 </head>
 <body>
@@ -65,7 +65,7 @@
   <div id="confirmDialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmDescription">
     <div class="dlg-icon">&#9211;</div>
     <div class="dlg-title" id="confirmTitle">Return to host OS?</div>
-    <div class="dlg-body" id="confirmDescription">This closes the B-OS app and returns you to Manjaro. Standard browser tabs may require manual confirmation.</div>
+    <div class="dlg-body" id="confirmDescription">This ends the B-OS session and returns you to the landing portal. Standard browser tabs may require manual confirmation.</div>
     <div class="dlg-actions">
       <button class="dlg-btn dlg-btn--yes" id="confirmYes">Yes, Exit</button>
       <button class="dlg-btn dlg-btn--no" id="confirmNo">Stay</button>
@@ -91,16 +91,16 @@
   </div>
   <form id="loginBox">
     <div style="text-align:center;margin-bottom:24px;">
-      <div class="lock-avatar">☁️</div>
-      <div id="loginModeBadge" class="login-mode-badge">SECURE LOGIN</div>
-      <div class="lock-username">B-CLOUD</div>
-      <div id="loginMsg" class="lock-subtitle">Sign in to your account</div>
+      <div class="lock-avatar" aria-hidden="true">B<span>-OS</span></div>
+      <div id="loginModeBadge" class="login-mode-badge">IDENTITY GATE</div>
+      <div class="lock-username">B-OS ACCESS</div>
+      <div id="loginMsg" class="lock-subtitle">Authenticate to enter your workspace</div>
     </div>
     <input id="loginDisplayName" class="login-field setup-only" type="text" placeholder="Owner display name" autocomplete="name" maxlength="50">
     <input id="loginUser" class="login-field" type="text" placeholder="Username" autocomplete="username" autocapitalize="none" spellcheck="false">
     <input id="loginPass" class="login-field" type="password" placeholder="Password" autocomplete="current-password">
     <input id="loginConfirm" class="login-field setup-only" type="password" placeholder="Confirm password" autocomplete="new-password">
-    <button id="loginBtn" class="login-btn" type="submit">Unlock</button>
+    <button id="loginBtn" class="login-btn" type="submit">ENTER B-OS</button>
     <div id="loginHint" class="login-hint">Use your B-OS account credentials.</div>
     <div id="loginError"></div>
   </form>
@@ -110,10 +110,10 @@
      TASKBAR
      ═══════════════════════════════════════════════════ -->
 <div id="taskbar">
-  <button id="startBtn" aria-label="Open Start menu" title="Start Menu">&#8862;</button>
+  <button id="startBtn" aria-label="Open B-OS command menu" title="B-OS Command Menu">B_</button>
   <div id="taskbarSearch">
     <span class="taskbar-search-icon">&#128269;</span>
-    <input id="searchInput" type="text" placeholder="Type to search..." autocomplete="off">
+    <input id="searchInput" type="text" placeholder="Search B-OS..." autocomplete="off">
   </div>
   <div id="taskbarWindows"></div>
   <div id="systemTray">
@@ -170,11 +170,11 @@
      ═══════════════════════════════════════════════════ -->
 <div id="startMenu">
   <div id="startMenuHeader">
-    <div class="menu-label">Applications</div>
+    <div class="menu-label">B-OS Applications</div>
   </div>
   <div id="startMenuApps"></div>
   <div id="startMenuFooter">
-    <span>B-OS v0.1</span>
+    <span>B-OS v0.1.0</span>
     <div class="startMenu-power-btn" id="startMenuPower" title="Power options">
       <span class="power-label">⏻ Power</span>
     </div>
