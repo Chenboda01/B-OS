@@ -40,6 +40,12 @@ ALLOWED_DIRS = [
     "/var",
 ]
 
+WRITABLE_DIRS = [
+    os.path.expanduser("~"),
+    "/home",
+    "/tmp",
+]
+
 BLOCKED_COMMANDS = [
     "rm", "dd", "mkfs", "shutdown", "reboot", "halt",
     "poweroff", "init", "systemctl", "chmod", "chown",
@@ -47,13 +53,16 @@ BLOCKED_COMMANDS = [
 ]
 
 
-def is_path_allowed(path: str) -> bool:
+def is_path_allowed(path: str, allowed_dirs=None) -> bool:
     """Check if a path is within allowed directories."""
     real = os.path.realpath(os.path.expanduser(path))
-    for d in ALLOWED_DIRS:
+    for d in allowed_dirs or ALLOWED_DIRS:
         d_real = os.path.realpath(os.path.expanduser(d))
-        if real.startswith(d_real):
-            return True
+        try:
+            if os.path.commonpath([real, d_real]) == d_real:
+                return True
+        except ValueError:
+            continue
     return False
 
 
@@ -214,6 +223,33 @@ def files_read():
             return jsonify({"content": "", "error": str(e)})
 
 
+@app.route("/api/files/write", methods=["POST"])
+def files_write():
+    data = request.get_json(silent=True) or {}
+    path = sanitize_path(data.get("path", ""))
+    content = data.get("content", "")
+    abspath = os.path.expanduser(path)
+
+    if not path:
+        return jsonify({"success": False, "error": "No path provided"}), 400
+    if not isinstance(content, str):
+        return jsonify({"success": False, "error": "Content must be text"}), 400
+    if len(content.encode("utf-8")) > 1024 * 1024:
+        return jsonify({"success": False, "error": "File too large (>1MB)"}), 413
+    if not is_path_allowed(abspath, WRITABLE_DIRS) or not is_path_allowed(os.path.dirname(abspath) or ".", WRITABLE_DIRS):
+        return jsonify({"success": False, "error": "Access denied"}), 403
+    if os.path.isdir(abspath):
+        return jsonify({"success": False, "error": "Path is a directory"}), 400
+
+    try:
+        Path(abspath).parent.mkdir(parents=True, exist_ok=True)
+        with open(abspath, "w", encoding="utf-8") as f:
+            f.write(content)
+        return jsonify({"success": True, "path": path})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @app.route("/api/files/operation", methods=["POST"])
 def files_operation():
     data = request.get_json(silent=True) or {}
@@ -308,11 +344,19 @@ def ai_chat():
     data = request.get_json(silent=True) or {}
     message = data.get("message", "").strip()
     history = data.get("history", [])
+    mode = data.get("mode", "chat")
 
     if not message:
         return jsonify({"reply": "", "error": "No message provided"})
 
-    messages = [{"role": "system", "content": "You are a helpful assistant running inside B-OS, a custom desktop operating system. Keep responses concise and helpful."}]
+    system_prompts = {
+        "chat": "You are a helpful assistant running inside B-OS, a custom desktop operating system. Keep responses concise and helpful.",
+        "file-edit": "You edit text files inside B-OS. Return only the complete revised file content, without Markdown fences or commentary.",
+        "terminal": "You are a Manjaro Linux terminal assistant. Return one safe shell command first, followed by one short explanation on a new line. Never suggest destructive commands.",
+        "coding": "You are the B-OS coding assistant. Provide concise, production-quality code and explain important tradeoffs.",
+        "workflow": "You are a B-OS planning agent. Produce a short actionable workflow with numbered steps, verification, and safety checks.",
+    }
+    messages = [{"role": "system", "content": system_prompts.get(mode, system_prompts["chat"])}]
     for h in history:
         messages.append(h)
     messages.append({"role": "user", "content": message})
@@ -360,6 +404,7 @@ if __name__ == "__main__":
     print("║  POST /api/terminal/exec  - Run commands     ║")
     print("║  GET  /api/files/list     - List directory   ║")
     print("║  POST /api/files/read     - Read file        ║")
+    print("║  POST /api/files/write    - Write text file  ║")
     print("║  POST /api/ai/chat        - AI chat          ║")
     print("║  GET  /api/health         - Server status    ║")
     print("╚══════════════════════════════════════════════╝")

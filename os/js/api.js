@@ -27,11 +27,24 @@ const API = {
     return r.json(); // { content, error }
   },
 
-  async chat(message, history = []) {
+  async writeFile(path, content) {
+    const r = await fetch(`${API_BASE}/api/files/write`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path, content })
+    });
+    const type = r.headers.get('content-type') || '';
+    if (!type.includes('application/json')) {
+      return { success: false, error: `Backend returned HTTP ${r.status}` };
+    }
+    return r.json(); // { success, path, error }
+  },
+
+  async chat(message, history = [], mode = 'chat') {
     const r = await fetch(`${API_BASE}/api/ai/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message, history })
+      body: JSON.stringify({ message, history, mode })
     });
     return r.json(); // { reply, error }
   },
