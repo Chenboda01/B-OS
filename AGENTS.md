@@ -49,7 +49,13 @@ B-OS/
 - **Backend is separate.** Create `server/.venv`, install with `python -m pip install -r server/requirements.txt`, and run `server/.venv/bin/python server/main.py`.
 - **Git branch:** `main`. Push to `https://github.com/Chenboda01/B-OS.git`.
 - **Landing page "Launch B-OS" link** navigates to `os/index.html`.
-- **OS Exit button** navigates back to `../index.html` (landing page).
+- **OS Exit button** attempts to close the app window; standard browser tabs show a manual-close fallback when browser policy blocks `window.close()`.
+
+## Agent Delegation
+
+- Reserve subagents for important, genuinely complex work where parallel specialist research materially improves correctness.
+- Handle routine searches, local fixes, and straightforward verification directly.
+- If the user says "no subagents," do not launch any and cancel pending tasks immediately.
 
 ## Running the OS
 
