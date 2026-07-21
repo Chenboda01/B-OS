@@ -948,7 +948,7 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
       var fpath = currentPath === '/' ? '/' + name : currentPath + '/' + name;
       var action = confirm('File: '+name+'\n\n[OK] = Delete\n[Cancel] to skip');
       if (action) {
-        fetch('http://localhost:8765/api/files/operation', {
+        fetch(API.baseUrl + '/api/files/operation', {
           method:'POST', headers:{'Content-Type':'application/json'},
           body: JSON.stringify({action:'delete', path:fpath})
         }).then(function() { navigate(currentPath, win); })
@@ -1089,7 +1089,7 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
     }).catch(function(err) {
       removeThinking();
       isThinking = false;
-      addMessage(container, 'assistant', '⚠ Could not reach the AI backend. Is the server running on localhost:8765?');
+      addMessage(container, 'assistant', '⚠ Could not reach the AI backend. Is the server running on ' + API.baseUrl + '?');
     });
   }
 
@@ -1235,9 +1235,9 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
   function loadSettings() {
     try {
       var raw = localStorage.getItem('bos-settings');
-      return raw ? JSON.parse(raw) : { theme: 'windows', fontSize: 13, wallpaper: 'particles', serverUrl: 'http://localhost:8765' };
+      return raw ? JSON.parse(raw) : { theme: 'windows', fontSize: 13, wallpaper: 'particles', serverUrl: API.baseUrl };
     } catch(e) {
-      return { theme: 'windows', fontSize: 13, wallpaper: 'particles', serverUrl: 'http://localhost:8765' };
+      return { theme: 'windows', fontSize: 13, wallpaper: 'particles', serverUrl: API.baseUrl };
     }
   }
 
@@ -1315,7 +1315,7 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
       '</div>' +
       '<div style="margin-bottom:16px;">' +
         '<div style="color:#555580;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;">Server URL</div>' +
-        '<input id="set-server" type="text" value="http://localhost:8765" ' +
+        '<input id="set-server" type="text" value="' + esc(API.baseUrl) + '" ' +
           'style="width:100%;background:#050510;border:1px solid #181848;color:#00f0ff;padding:8px 12px;border-radius:2px;font-family:var(--font-mono,monospace);font-size:12px;outline:none;" />' +
       '</div>' +
       '<div style="color:#555580;font-size:11px;">Platform: ' + navigator.platform + '</div>' +
@@ -1368,7 +1368,7 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
       '</div>' +
       '<div style="margin-bottom:16px;">' +
         '<div style="color:#555580;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;">API Endpoint</div>' +
-          '<div style="color:#9999cc;padding:8px 12px;border:1px solid #181848;border-radius:2px;background:#050510;">http://localhost:8765/api/ai/chat</div>' +
+          '<div style="color:#9999cc;padding:8px 12px;border:1px solid #181848;border-radius:2px;background:#050510;">' + esc(API.baseUrl + '/api/ai/chat') + '</div>' +
         '</div>' +
         '<div style="margin-bottom:16px;">' +
           '<div style="color:#555580;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;">API Key</div>' +
@@ -1473,7 +1473,7 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
   function bindSystemEvents(win, contentEl, settings) {
     var serverInput = contentEl.querySelector('#set-server');
     if (serverInput) {
-      serverInput.value = settings.serverUrl || 'http://localhost:8765';
+      serverInput.value = settings.serverUrl || API.baseUrl;
       serverInput.addEventListener('change', function() {
         settings.serverUrl = this.value.trim();
         saveSettings(settings);
@@ -2060,7 +2060,7 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
       '<div id="disk-info" style="color:#555;">Loading...</div></div>';
   }
   function setupEvents(win) {
-    fetch('http://localhost:8765/api/terminal/exec',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({command:'df -h /home 2>/dev/null || echo No disk info',cwd:'~'})})
+    fetch(API.baseUrl + '/api/terminal/exec',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({command:'df -h /home 2>/dev/null || echo No disk info',cwd:'~'})})
       .then(function(r){return r.json();}).then(function(d){
         win.querySelector('#disk-info').innerHTML = '<pre style="color:#00ff88;font-family:monospace;font-size:11px;">'+(d.stdout||'N/A')+'</pre>';
       }).catch(function(){});

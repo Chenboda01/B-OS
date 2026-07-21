@@ -1,7 +1,9 @@
-// B-OS API Client — Communicates with the Python backend at localhost:8765
-const API_BASE = 'http://localhost:8765';
+// B-OS API Client — matches the backend's loopback-only bind address.
+const API_BASE = 'http://127.0.0.1:8765';
 
 const API = {
+  baseUrl: API_BASE,
+
   async exec(cmd, cwd) {
     const r = await fetch(`${API_BASE}/api/terminal/exec`, {
       method: 'POST',
