@@ -14,7 +14,7 @@ B-OS/
 ├── os/                 # Browser-based desktop OS (frontend)
 │   ├── index.html      # OS shell — desktop, window manager, taskbar, boot animation
 │   └── js/
-│       ├── api.js      # API client — communicates with Python backend (localhost:8765)
+│       ├── api.js      # API client — communicates with Python backend (127.0.0.1:8765)
 │       └── apps.js     # OS apps — Terminal, Files, AI Chat, Browser, Settings, Clock, Games
 └── server/             # Python backend
     ├── main.py         # Flask server — terminal exec, file system, AI proxy (QWEN)
