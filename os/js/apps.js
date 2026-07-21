@@ -93,7 +93,7 @@
   };
 
   function esc(s) {
-    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   }
 
   function makePromptHTML() {
@@ -1257,6 +1257,7 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
         '<div style="padding:8px 16px;color:#555580;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px;">Settings</div>' +
         '<div class="set-tab" data-tab="appearance" style="padding:8px 16px;cursor:pointer;color:#00f0ff;background:rgba(0,240,255,0.05);border-left:2px solid #00f0ff;">Appearance</div>' +
         '<div class="set-tab" data-tab="system" style="padding:8px 16px;cursor:pointer;color:#9999cc;border-left:2px solid transparent;">System</div>' +
+        (window.BOS_Auth && window.BOS_Auth.isAdmin() ? '<div class="set-tab" data-tab="accounts" style="padding:8px 16px;cursor:pointer;color:#9999cc;border-left:2px solid transparent;">Accounts</div>' : '') +
         '<div class="set-tab" data-tab="updates" style="padding:8px 16px;cursor:pointer;color:#9999cc;border-left:2px solid transparent;">Updates</div>' +
         '<div class="set-tab" data-tab="ai" style="padding:8px 16px;cursor:pointer;color:#9999cc;border-left:2px solid transparent;">AI</div>' +
         '<div class="set-tab" data-tab="about" style="padding:8px 16px;cursor:pointer;color:#9999cc;border-left:2px solid transparent;">About</div>' +
@@ -1350,6 +1351,99 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
     });
   }
 
+  function buildAccountsPanel() {
+    if (!window.BOS_Auth || !window.BOS_Auth.isAdmin()) {
+      return '<div style="color:#ff3355;padding:16px;border:1px solid rgba(255,51,85,0.3);background:rgba(255,51,85,0.05);">Administrator access required.</div>';
+    }
+    var current = window.BOS_Auth.getCurrentUser();
+    var users = window.BOS_Auth.listUsers();
+    return '<div id="panel-accounts">' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px;">' +
+        '<div><div style="color:#e8eaff;font-size:14px;font-weight:bold;margin-bottom:4px;">Account Management</div>' +
+        '<div style="color:#555580;font-size:10px;line-height:1.6;">Signed in as <span style="color:#00f0ff;">' + esc(current.displayName) + '</span>. Administrators can manage all non-owner accounts.</div></div>' +
+        '<div style="padding:5px 9px;border:1px solid rgba(0,255,136,0.25);color:#00ff88;font-size:9px;letter-spacing:0.12em;">ADMIN</div>' +
+      '</div>' +
+      '<form id="account-create-form" style="padding:14px;border:1px solid #181848;background:#0a0a1a;border-radius:4px;margin-bottom:16px;">' +
+        '<div style="color:#9999cc;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10px;">Add account</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">' +
+          '<input id="account-display" type="text" maxlength="50" placeholder="Display name" style="background:#050510;border:1px solid #181848;color:#e8eaff;padding:8px;font-family:monospace;">' +
+          '<input id="account-user" type="text" maxlength="24" placeholder="Username" autocomplete="off" style="background:#050510;border:1px solid #181848;color:#e8eaff;padding:8px;font-family:monospace;">' +
+          '<input id="account-password" type="password" placeholder="Temporary password" autocomplete="new-password" style="background:#050510;border:1px solid #181848;color:#e8eaff;padding:8px;font-family:monospace;">' +
+          '<select id="account-role" style="background:#050510;border:1px solid #181848;color:#e8eaff;padding:8px;font-family:monospace;"><option value="user">Standard user</option><option value="admin">Administrator</option></select>' +
+        '</div>' +
+        '<button type="submit" style="background:#0078d4;color:#fff;border:0;padding:8px 16px;border-radius:3px;cursor:pointer;font-size:11px;">Create Account</button>' +
+        '<span id="account-status" style="margin-left:10px;color:#9999cc;font-size:10px;"></span>' +
+      '</form>' +
+      '<div style="display:flex;flex-direction:column;gap:8px;">' + users.map(function(user) {
+        var protectedAccount = user.owner || user.username === current.username;
+        var roleColor = user.role === 'admin' ? '#ffaa00' : '#00f0ff';
+        return '<div class="account-row" data-username="' + esc(user.username) + '" style="display:flex;align-items:center;gap:10px;padding:12px;border:1px solid #181848;background:#080818;border-radius:4px;">' +
+          '<div style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:rgba(0,120,212,0.18);color:#00f0ff;">' + esc(user.displayName.charAt(0).toUpperCase()) + '</div>' +
+          '<div style="flex:1;min-width:0;"><div style="color:#e8eaff;font-size:12px;font-weight:bold;">' + esc(user.displayName) + (user.owner ? ' <span style="color:#00ff88;font-size:9px;">OWNER</span>' : '') + '</div>' +
+          '<div style="color:#555580;font-size:10px;">@' + esc(user.username) + ' · <span style="color:' + roleColor + ';">' + esc(user.role) + '</span>' + (user.disabled ? ' · <span style="color:#ff3355;">disabled</span>' : '') + '</div></div>' +
+          '<button data-account-action="reset" data-username="' + esc(user.username) + '" style="background:#181848;color:#e8eaff;border:1px solid #333;padding:5px 8px;cursor:pointer;font-size:9px;">Reset</button>' +
+          (!protectedAccount ? '<button data-account-action="role" data-username="' + esc(user.username) + '" data-role="' + (user.role === 'admin' ? 'user' : 'admin') + '" style="background:#181848;color:#ffaa00;border:1px solid #333;padding:5px 8px;cursor:pointer;font-size:9px;">' + (user.role === 'admin' ? 'Make User' : 'Make Admin') + '</button>' : '') +
+          (!protectedAccount ? '<button data-account-action="disable" data-username="' + esc(user.username) + '" data-disabled="' + (!user.disabled) + '" style="background:#181848;color:#ffaa00;border:1px solid #333;padding:5px 8px;cursor:pointer;font-size:9px;">' + (user.disabled ? 'Enable' : 'Disable') + '</button>' : '') +
+          (!protectedAccount ? '<button data-account-action="delete" data-username="' + esc(user.username) + '" style="background:rgba(255,51,85,0.08);color:#ff3355;border:1px solid rgba(255,51,85,0.3);padding:5px 8px;cursor:pointer;font-size:9px;">Delete</button>' : '') +
+        '</div>';
+      }).join('') + '</div>' +
+    '</div>';
+  }
+
+  function renderAccountsPanel(contentEl) {
+    contentEl.innerHTML = buildAccountsPanel();
+    bindAccountsEvents(contentEl);
+  }
+
+  function bindAccountsEvents(contentEl) {
+    var form = contentEl.querySelector('#account-create-form');
+    if (!form) return;
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      var status = contentEl.querySelector('#account-status');
+      try {
+        await window.BOS_Auth.createUser(
+          contentEl.querySelector('#account-user').value,
+          contentEl.querySelector('#account-display').value,
+          contentEl.querySelector('#account-password').value,
+          contentEl.querySelector('#account-role').value
+        );
+        showToast('Accounts', 'Account created successfully.');
+        renderAccountsPanel(contentEl);
+      } catch (err) {
+        status.textContent = err && err.message ? err.message : 'Unable to create account.';
+        status.style.color = '#ff3355';
+      }
+    });
+    contentEl.querySelectorAll('[data-account-action]').forEach(function(button) {
+      button.addEventListener('click', async function() {
+        var action = this.dataset.accountAction;
+        var username = this.dataset.username;
+        try {
+          if (action === 'reset') {
+            var password = prompt('New password for ' + username + ' (minimum 6 characters):');
+            if (password === null) return;
+            await window.BOS_Auth.resetPassword(username, password);
+            showToast('Accounts', 'Password reset for ' + username + '.');
+          } else if (action === 'role') {
+            window.BOS_Auth.setRole(username, this.dataset.role);
+            showToast('Accounts', 'Role updated for ' + username + '.');
+          } else if (action === 'disable') {
+            window.BOS_Auth.setDisabled(username, this.dataset.disabled === 'true');
+            showToast('Accounts', 'Account status updated for ' + username + '.');
+          } else if (action === 'delete') {
+            if (!confirm('Delete account ' + username + '? This cannot be undone.')) return;
+            window.BOS_Auth.deleteUser(username);
+            showToast('Accounts', 'Account deleted: ' + username + '.');
+          }
+          renderAccountsPanel(contentEl);
+        } catch (err) {
+          showToast('Accounts', err && err.message ? err.message : 'Account operation failed.');
+        }
+      });
+    });
+  }
+
   function buildAIPanel() {
     var hasKey = true;
     return '<div id="panel-ai">' +
@@ -1423,6 +1517,7 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
         });
         if (tabName === 'appearance') { contentEl.innerHTML = buildAppearancePanel(settings); bindAppearanceEvents(win, contentEl, settings); }
         else if (tabName === 'system') { contentEl.innerHTML = buildSystemPanel(); checkSystemHealth(win); bindSystemEvents(win, contentEl, settings); }
+        else if (tabName === 'accounts') { renderAccountsPanel(contentEl); }
         else if (tabName === 'updates') { contentEl.innerHTML = buildUpdatesPanel(); bindUpdatesEvents(win, contentEl); }
         else if (tabName === 'ai') { contentEl.innerHTML = buildAIPanel(); bindAIEvents(win, contentEl); }
         else if (tabName === 'about') contentEl.innerHTML = buildAboutPanel();
@@ -1966,19 +2061,33 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
 })();
 
 (function() {
+  function safeText(value) {
+    var div = document.createElement('div');
+    div.textContent = String(value);
+    return div.innerHTML;
+  }
   function createUI() {
+    var user = window.BOS_Auth ? window.BOS_Auth.getCurrentUser() : null;
+    var displayName = user ? user.displayName : 'Guest';
+    var username = user ? user.username : 'not signed in';
+    var role = user ? (user.owner ? 'Owner / Administrator' : (user.role === 'admin' ? 'Administrator' : 'Standard User')) : 'Locked';
     return '<div class="bos-app" style="padding:24px;text-align:center;background:#050510;color:#e8eaff;height:100%;overflow-y:auto;">' +
       '<div style="width:64px;height:64px;border-radius:50%;background:#0078d4;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:28px;">👤</div>' +
-      '<div style="font-size:16px;font-weight:bold;margin-bottom:4px;">User</div>' +
-      '<div style="color:#555;font-size:11px;margin-bottom:20px;">Administrator</div>' +
+      '<div style="font-size:16px;font-weight:bold;margin-bottom:4px;">' + safeText(displayName) + '</div>' +
+      '<div style="color:#00f0ff;font-size:11px;margin-bottom:4px;">@' + safeText(username) + '</div>' +
+      '<div style="color:#555;font-size:11px;margin-bottom:20px;">' + role + '</div>' +
       '<div style="text-align:left;padding:12px;background:#0a0a1a;border-radius:4px;margin-bottom:8px;">' +
-        '<div style="color:#555;font-size:10px;">HOSTNAME</div><div style="font-size:13px;">b-os.local</div></div>' +
+      '<div style="color:#555;font-size:10px;">HOSTNAME</div><div style="font-size:13px;">b-os.local</div></div>' +
       '<div style="text-align:left;padding:12px;background:#0a0a1a;border-radius:4px;margin-bottom:8px;">' +
-        '<div style="color:#555;font-size:10px;">BROWSER</div><div style="font-size:13px;">'+(navigator.userAgent.split(') ').pop()||'Unknown')+'</div></div>' +
-      '<button style="margin-top:12px;background:#ff3355;color:#fff;border:none;padding:8px 24px;border-radius:4px;cursor:pointer;font-size:12px;" onclick="showLogin(\'Signed out\')">Sign Out</button>' +
+      '<div style="color:#555;font-size:10px;">BROWSER</div><div style="font-size:13px;">'+(navigator.userAgent.split(') ').pop()||'Unknown')+'</div></div>' +
+      '<button id="profile-signout" style="margin-top:12px;background:#ff3355;color:#fff;border:none;padding:8px 24px;border-radius:4px;cursor:pointer;font-size:12px;">Sign Out</button>' +
     '</div>';
   }
-  function setupEvents(win) {}
+  function setupEvents(win) {
+    win.querySelector('#profile-signout').addEventListener('click', function() {
+      if (window.BOS_Auth) window.BOS_Auth.signOut();
+    });
+  }
   function launch() { var w = BOS.createWindow({title:'Profile',icon:'👤',width:320,height:360,content:createUI()}); setupEvents(w); }
   BOS.registerApp({ id:'profile', name:'Profile', icon:'👤', category:'system', launch:launch });
 })();
