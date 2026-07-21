@@ -550,7 +550,6 @@
         document.getElementById('exitButton').classList.add('visible');
         try { initParticles(); } catch(e) {}
         restoreSettings();
-        requestFullscreen();
         if (typeof API !== 'undefined' && API.health) {
           API.health().then(function(r) {
             var line = document.getElementById('bootBackendStatus');
@@ -661,14 +660,43 @@
     } catch(e) {}
   }
 
-  function requestFullscreen() {
-    var el = document.documentElement;
-    if (el.requestFullscreen) {
-      el.requestFullscreen().catch(function(){});
-    } else if (el.webkitRequestFullscreen) {
-      el.webkitRequestFullscreen();
+  function updateFullscreenLabel() {
+    var item = document.getElementById('enterFullscreen');
+    if (!item) return;
+    item.textContent = document.fullscreenElement ? '⛶ Exit Full Screen' : '⛶ Full Screen';
+  }
+
+  function toggleFullscreen() {
+    if (document.fullscreenElement) {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(function(err) {
+          console.warn('Unable to exit fullscreen:', err);
+        });
+      }
+      return;
+    }
+
+    var request = document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen;
+    if (!request) {
+      showToast('Full Screen', 'This browser does not support fullscreen mode.');
+      return;
+    }
+
+    try {
+      var result = request.call(document.documentElement);
+      if (result && typeof result.catch === 'function') {
+        result.catch(function(err) {
+          console.warn('Fullscreen failed:', err);
+          showToast('Full Screen', 'The browser blocked fullscreen mode.');
+        });
+      }
+    } catch (err) {
+      console.warn('Fullscreen failed:', err);
+      showToast('Full Screen', 'The browser blocked fullscreen mode.');
     }
   }
+
+  document.addEventListener('fullscreenchange', updateFullscreenLabel);
 
   /* ─────────────────────────────────────────────────
      PARTICLE CANVAS
@@ -807,12 +835,45 @@
   /* ─────────────────────────────────────────────────
      EXIT BUTTON
      ───────────────────────────────────────────────── */
+  var shutdownOverlay = document.getElementById('shutdownOverlay');
+  var shutdownText = document.getElementById('shutdownText');
+  var shutdownDetail = document.getElementById('shutdownDetail');
+  var powerOnButton = document.getElementById('powerOn');
+
+  function showPowerState(state, message, detail) {
+    shutdownOverlay.dataset.state = state;
+    shutdownText.textContent = message;
+    shutdownDetail.textContent = detail;
+    powerOnButton.classList.remove('visible');
+    powerOnButton.onclick = null;
+    shutdownOverlay.classList.add('active');
+    shutdownOverlay.setAttribute('aria-hidden', 'false');
+  }
+
+  function hidePowerState() {
+    shutdownOverlay.classList.remove('active');
+    shutdownOverlay.setAttribute('aria-hidden', 'true');
+  }
+
+  function setPowerAction(label, handler) {
+    powerOnButton.textContent = label;
+    powerOnButton.onclick = handler;
+    powerOnButton.classList.add('visible');
+  }
+
   document.getElementById('exitButton').addEventListener('click', function() {
     document.getElementById('confirmOverlay').classList.add('active');
   });
 
   document.getElementById('confirmYes').addEventListener('click', function() {
-    window.location.href = '../index.html';
+    document.getElementById('confirmOverlay').classList.remove('active');
+    window.close();
+
+    setTimeout(function() {
+      if (window.closed) return;
+      showPowerState('exit', 'Close B-OS to return to Manjaro', 'This browser blocked automatic window closing. Close this app window or tab to return to your host desktop.');
+      setPowerAction('RETURN TO B-OS', hidePowerState);
+    }, 250);
   });
 
   document.getElementById('confirmNo').addEventListener('click', function() {
@@ -843,7 +904,8 @@
   });
 
   document.addEventListener('keydown', function(e) {
-    if (e.target === searchInput) return;
+    if (loginOverlay && loginOverlay.classList.contains('active')) return;
+    if (e.target.closest && e.target.closest('input, textarea, [contenteditable="true"]')) return;
     if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
       searchInput.focus();
     }
@@ -899,28 +961,27 @@
     item.addEventListener('click', function() {
       var action = this.dataset.action;
       powerMenu.classList.remove('open');
-      if (action === 'lock') {
+      if (action === 'fullscreen') {
+        toggleFullscreen();
+      } else if (action === 'lock') {
         showLogin('Locked');
       } else if (action === 'sleep') {
-        document.getElementById('shutdownOverlay').classList.add('active');
-        document.getElementById('shutdownText').textContent = 'Sleeping...';
+        showPowerState('sleep', 'Entering sleep mode', 'Suspending the B-OS session and locking your workspace.');
         setTimeout(function() {
-          document.getElementById('shutdownOverlay').classList.remove('active');
+          hidePowerState();
           showLogin('Wake from sleep');
         }, 2000);
       } else if (action === 'restart') {
-        document.getElementById('shutdownOverlay').classList.add('active');
-        document.getElementById('shutdownText').textContent = 'Restarting...';
+        showPowerState('restart', 'Restarting B-OS', 'Reloading the kernel, services, and application registry.');
         setTimeout(function() { location.reload(); }, 2000);
       } else if (action === 'shutdown') {
-        var overlay = document.getElementById('shutdownOverlay');
-        overlay.classList.add('active');
-        document.getElementById('shutdownText').textContent = 'Shutting down...';
+        showPowerState('shutdown', 'Shutting down B-OS', 'Closing services and preserving your Manjaro host session.');
         setTimeout(function() {
           document.getElementById('desktop').style.display = 'none';
           document.getElementById('taskbar').style.display = 'none';
-          overlay.innerHTML = '<div class="shutdown-icon">⏻</div><div class="shutdown-msg">B-OS is powered off</div><button id="powerOn" class="power-on-btn">Power On</button>';
-          document.getElementById('powerOn').addEventListener('click', function() { location.reload(); });
+          document.getElementById('exitButton').style.display = 'none';
+          showPowerState('off', 'B-OS is powered off', 'Your Manjaro session is still running. Start B-OS again when you are ready.');
+          setPowerAction('POWER ON', function() { location.reload(); });
         }, 1500);
       }
     });
@@ -937,7 +998,9 @@
     loginMsg.textContent = msg || 'Sign in to unlock';
     updateLockClock();
     loginOverlay.classList.add('active');
-    document.getElementById('loginUser').focus();
+    requestAnimationFrame(function() {
+      document.getElementById('loginUser').focus();
+    });
   }
   function updateLockClock() {
     var now = new Date();
@@ -969,7 +1032,8 @@
     return Array.from(crypto.getRandomValues(new Uint8Array(16))).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
   }
 
-  document.getElementById('loginBtn').addEventListener('click', async function() {
+  document.getElementById('loginBox').addEventListener('submit', async function(e) {
+    e.preventDefault();
     var user = document.getElementById('loginUser').value.trim();
     var pass = document.getElementById('loginPass').value.trim();
     if (!user || !pass) {
@@ -996,10 +1060,6 @@
       loginError.textContent = 'Login error. Try again.';
       loginError.style.display = 'block';
     }
-  });
-
-  document.getElementById('loginPass').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') document.getElementById('loginBtn').click();
   });
 
   /* Remove old document click handler (now combined with power menu) */
@@ -1139,7 +1199,7 @@
      KEYBOARD SHORTCUTS
      ───────────────────────────────────────────────── */
   document.addEventListener('keydown', function(e) {
-    if (loginOverlay.classList.contains('active')) { if (e.key === 'Enter') return; return; }
+    if (loginOverlay.classList.contains('active')) return;
     if (e.key === 'Escape') {
       if (document.activeElement === searchInput && searchInput.value) {
         searchInput.value = '';

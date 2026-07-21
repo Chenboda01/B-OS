@@ -65,7 +65,7 @@
   <div id="confirmDialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmDescription">
     <div class="dlg-icon">&#9211;</div>
     <div class="dlg-title" id="confirmTitle">Return to host OS?</div>
-    <div class="dlg-body" id="confirmDescription">This will close B-OS and navigate back to the landing page.</div>
+    <div class="dlg-body" id="confirmDescription">This closes the B-OS app and returns you to Manjaro. Standard browser tabs may require manual confirmation.</div>
     <div class="dlg-actions">
       <button class="dlg-btn dlg-btn--yes" id="confirmYes">Yes, Exit</button>
       <button class="dlg-btn dlg-btn--no" id="confirmNo">Stay</button>
@@ -73,9 +73,15 @@
   </div>
 </div>
 
-<div id="shutdownOverlay">
-  <div class="shutdown-icon">⏻</div>
-  <div id="shutdownText" class="shutdown-msg">Shutting down...</div>
+<div id="shutdownOverlay" aria-hidden="true">
+  <div class="shutdown-panel">
+    <div class="shutdown-kicker"><span class="shutdown-status-dot"></span>B-OS POWER CONTROL</div>
+    <div class="shutdown-icon" aria-hidden="true">⏻</div>
+    <div id="shutdownText" class="shutdown-msg" aria-live="polite">Shutting down...</div>
+    <div id="shutdownDetail" class="shutdown-detail">Closing services and preserving your host session.</div>
+    <div id="shutdownProgress" class="shutdown-progress" aria-hidden="true"><span></span></div>
+    <button id="powerOn" class="power-on-btn" type="button">Power On</button>
+  </div>
 </div>
 
 <div id="loginOverlay">
@@ -83,17 +89,17 @@
     <div id="lockTime" class="lock-time"></div>
     <div id="lockDate" class="lock-date"></div>
   </div>
-  <div id="loginBox">
+  <form id="loginBox">
     <div style="text-align:center;margin-bottom:24px;">
       <div class="lock-avatar">☁️</div>
       <div class="lock-username">B-CLOUD</div>
       <div id="loginMsg" class="lock-subtitle">Sign in to your account</div>
     </div>
-    <input id="loginUser" class="login-field" type="text" placeholder="Username">
-    <input id="loginPass" class="login-field" type="password" placeholder="Password">
-    <button id="loginBtn" class="login-btn">Unlock</button>
+    <input id="loginUser" class="login-field" type="text" placeholder="Username" autocomplete="username" autocapitalize="none" spellcheck="false">
+    <input id="loginPass" class="login-field" type="password" placeholder="Password" autocomplete="current-password">
+    <button id="loginBtn" class="login-btn" type="submit">Unlock</button>
     <div id="loginError"></div>
-  </div>
+  </form>
 </div>
 
 <!-- ═══════════════════════════════════════════════════
@@ -126,6 +132,7 @@
       <div id="trayPower" title="Power">
         <span style="font-size:14px;">&#9210;</span>
         <div id="powerMenu">
+          <div class="power-item" id="enterFullscreen" data-action="fullscreen">⛶ Full Screen</div>
           <div class="power-item" data-action="lock">🔒 Lock</div>
           <div class="power-item" data-action="sleep">😴 Sleep</div>
           <div class="power-item" data-action="restart">🔄 Restart</div>
