@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════
 // B-OS Desktop Applications — apps.js
-// All 7 apps registered with the BOS shell
+// Core applications registered with the BOS shell
 // ═══════════════════════════════════════════════════════════════
 
 // ─── Shared styles injected once ───────────────────────────────
