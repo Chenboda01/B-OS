@@ -28,7 +28,11 @@
       if (!p) return false;
       p.state = 'terminated';
       p.windows.forEach(function(wid) {
-        try { BOS.closeWindow(wid); } catch(e) {}
+      try {
+        BOS.closeWindow(wid);
+      } catch(e) {
+        console.error('Unable to close process window ' + wid + ':', e);
+      }
       });
       processes.delete(pid);
       BOS_Events.emit('process:killed', p);
