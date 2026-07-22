@@ -13,10 +13,10 @@ B-OS/
 ├── AGENTS.md           # This file
 ├── os/                 # Browser-based desktop OS (frontend)
 │   ├── index.html      # OS shell — desktop, window manager, taskbar, boot animation
-│   └── js/
-│       ├── api.js      # API client — communicates with Python backend (127.0.0.1:8765)
-│       ├── apps.js     # Core OS apps — Terminal, Files, AI Chat, Browser, Settings, Clock, Games
-│       └── advanced-apps.js # Display Manager, Clipboard Manager, and AI Studio
+│   ├── kernel/         # BOS compatibility API, window manager, events, and processes
+│   ├── desktop/        # Desktop state, shell behavior, and shared app styles
+│   ├── services/       # API, filesystem, and authentication services
+│   └── apps/           # One directory per app, each exposing app.js
 └── server/             # Python backend
     ├── main.py         # Flask server — terminal exec, file system, AI proxy (QWEN)
     └── requirements.txt
@@ -24,7 +24,7 @@ B-OS/
 
 ## Architecture
 
-**Frontend (browser):** Vanilla HTML/CSS/JS. Single-file components. No frameworks, no npm, no build step. The OS shell (`os/index.html`) provides a `BOS` global window manager. Apps register via `BOS.registerApp()` and create windows via `BOS.createWindow()`.
+**Frontend (browser):** Vanilla HTML/CSS/JS. No frameworks, no npm, no build step. The OS shell (`os/index.html`) loads modular kernel, desktop, service, and app scripts. The kernel provides the compatible `BOS` global API. Apps register via `BOS.registerApp()` and create windows via `BOS.createWindow()`.
 
 **Backend:** Python Flask bound to `127.0.0.1:8765`. CORS is restricted to the GitHub Pages origin and approved local development origins. Endpoints:
 - `POST /api/terminal/exec` — execute shell commands (blocked: rm, dd, shutdown, etc.)
@@ -41,7 +41,7 @@ B-OS/
 **Aesthetic:** Retro-futuristic cyberpunk. Dark theme with neon accents. Not Windows-like.
 **Colors:** `--void #050510`, `--cyan #00f0ff`, `--magenta #ff00ff`, `--green #00ff88`, `--amber #ffaa00`, `--red #ff3355`
 **Fonts:** `'Consolas', 'SF Mono', 'Fira Code', 'Courier New', monospace` (display/mono). No Inter, Roboto, Arial, Space Grotesk.
-**No external CDNs or frameworks.** The landing page is self-contained; the OS shell uses local files under `os/css/` and `os/js/`.
+**No external CDNs or frameworks.** The landing page is self-contained; the OS shell uses repository-local files under `os/css/`, `os/kernel/`, `os/desktop/`, `os/services/`, and `os/apps/`.
 
 ## Key Conventions
 
