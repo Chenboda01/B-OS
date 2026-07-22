@@ -14,12 +14,15 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 
 app = Flask(__name__)
+BACKEND_PORT = int(os.environ.get("BOS_BACKEND_PORT", "8765"))
 
 ALLOWED_ORIGINS = [
     "https://chenboda01.github.io",
     "http://localhost:8000",
     "http://127.0.0.1:8000",
 ]
+if os.environ.get("BOS_FRONTEND_ORIGIN"):
+    ALLOWED_ORIGINS.append(os.environ["BOS_FRONTEND_ORIGIN"])
 
 CORS(app, resources={
     r"/api/.*": {
@@ -46,11 +49,14 @@ WRITABLE_DIRS = [
     "/tmp",
 ]
 
-BLOCKED_COMMANDS = [
-    "rm", "dd", "mkfs", "shutdown", "reboot", "halt",
-    "poweroff", "init", "systemctl", "chmod", "chown",
-    "fdisk", "parted", "mount", "umount",
-]
+ALLOWED_TERMINAL_COMMANDS = {
+    "basename", "cat", "cut", "df", "dirname", "du", "echo", "file",
+    "free", "grep", "head", "id", "ls", "printenv", "printf", "ps",
+    "readlink", "realpath", "stat", "tail", "tr", "uname", "uptime",
+    "wc", "which", "whoami", "whereis",
+}
+SHELL_METACHARACTERS = frozenset(";&|`$<>\n\r")
+MAX_TERMINAL_OUTPUT = 1024 * 1024
 
 
 def is_path_allowed(path: str, allowed_dirs=None) -> bool:
@@ -68,11 +74,33 @@ def is_path_allowed(path: str, allowed_dirs=None) -> bool:
 
 def sanitize_path(path: str) -> str:
     """Expand and sanitize a path."""
-    path = os.path.expanduser(path)
-    # Prevent directory traversal
-    if ".." in path:
-        path = path.replace("..", "")
-    return path
+    return os.path.expanduser(str(path))
+
+
+def parse_terminal_command(command: str) -> list[str]:
+    """Parse one allowlisted command without invoking a shell."""
+    if any(char in command for char in SHELL_METACHARACTERS):
+        raise ValueError("Shell operators, redirects, and substitutions are not supported.")
+    try:
+        tokens = shlex.split(command, posix=True)
+    except ValueError as exc:
+        raise ValueError(f"Invalid command syntax: {exc}") from exc
+    if not tokens:
+        return []
+    executable = tokens[0]
+    if "/" in executable or executable not in ALLOWED_TERMINAL_COMMANDS:
+        raise PermissionError(
+            f"Command '{executable}' is unavailable in the restricted B-OS terminal."
+        )
+    return tokens
+
+
+def limit_terminal_output(value: str) -> str:
+    """Bound terminal responses so one command cannot exhaust browser memory."""
+    encoded = value.encode("utf-8", errors="replace")
+    if len(encoded) <= MAX_TERMINAL_OUTPUT:
+        return value
+    return encoded[:MAX_TERMINAL_OUTPUT].decode("utf-8", errors="replace") + "\n[output truncated]"
 
 
 # ─── Terminal ────────────────────────────────────────────────────
@@ -86,38 +114,51 @@ def terminal_exec():
     if not cmd:
         return jsonify({"stdout": "", "stderr": "", "exit_code": 0})
 
-    # Validate cwd
+    # Restrict execution to the local filesystem areas exposed by B-OS.
     cwd = os.path.expanduser(str(cwd))
-    if not os.path.isdir(cwd):
+    if not os.path.isdir(cwd) or not is_path_allowed(cwd):
         cwd = os.path.expanduser("~")
 
-    # Security: block dangerous commands
-    tokens = shlex.split(cmd)
-    if tokens and tokens[0] in BLOCKED_COMMANDS:
+    try:
+        tokens = shlex.split(cmd, posix=True)
+    except ValueError as exc:
+        return jsonify({"stdout": "", "stderr": f"Invalid command syntax: {exc}", "exit_code": 2})
+
+    if tokens and tokens[0] == "cd":
+        if len(tokens) > 2:
+            return jsonify({"stdout": "", "stderr": "cd: too many arguments", "exit_code": 2})
+        target = os.path.realpath(os.path.join(cwd, os.path.expanduser(tokens[1] if len(tokens) == 2 else "~")))
+        if not os.path.isdir(target) or not is_path_allowed(target):
+            return jsonify({"stdout": "", "stderr": "cd: directory unavailable", "exit_code": 1})
+        return jsonify({"stdout": "", "stderr": "", "exit_code": 0, "cwd": target})
+
+    try:
+        tokens = parse_terminal_command(cmd)
+    except (PermissionError, ValueError) as exc:
         return jsonify({
             "stdout": "",
-            "stderr": f"B-OS: Command '{tokens[0]}' is blocked for safety.",
+            "stderr": f"B-OS: {exc}",
             "exit_code": 1
         })
 
     try:
         result = subprocess.run(
-            cmd,
-            shell=True,
+            tokens,
+            shell=False,
             capture_output=True,
             text=True,
-            timeout=30,
+            timeout=10,
             cwd=cwd
         )
         return jsonify({
-            "stdout": result.stdout,
-            "stderr": result.stderr,
+            "stdout": limit_terminal_output(result.stdout),
+            "stderr": limit_terminal_output(result.stderr),
             "exit_code": result.returncode
         })
     except subprocess.TimeoutExpired:
         return jsonify({
             "stdout": "",
-            "stderr": "Command timed out (30s limit).",
+            "stderr": "Command timed out (10s limit).",
             "exit_code": 124
         })
     except Exception as e:
@@ -130,16 +171,9 @@ def terminal_exec():
 
 @app.route("/api/terminal/commands", methods=["GET"])
 def terminal_commands():
-    """Return all available system commands."""
-    try:
-        result = subprocess.run(
-            "compgen -c | sort | uniq",
-            shell=True, capture_output=True, text=True, timeout=10
-        )
-        commands = [c.strip() for c in result.stdout.strip().split("\n") if c.strip()]
-        return jsonify({"count": len(commands), "commands": commands})
-    except Exception as e:
-        return jsonify({"count": 0, "commands": [], "error": str(e)})
+    """Return commands exposed by the restricted terminal API."""
+    commands = sorted(ALLOWED_TERMINAL_COMMANDS)
+    return jsonify({"count": len(commands), "commands": commands, "restricted": True})
 
 
 @app.route("/api/terminal/which", methods=["GET"])
@@ -147,6 +181,8 @@ def terminal_which():
     cmd = request.args.get("cmd", "").strip()
     if not cmd:
         return jsonify({"path": "", "error": "No command specified"})
+    if cmd not in ALLOWED_TERMINAL_COMMANDS:
+        return jsonify({"path": "", "exists": False, "error": "Command is not available in the restricted terminal"})
     try:
         result = subprocess.run(
             ["which", cmd],
@@ -260,8 +296,11 @@ def files_operation():
 
     if not path or not action:
         return jsonify({"error": "Missing path or action"})
-    if not is_path_allowed(abspath):
+    if not is_path_allowed(abspath, WRITABLE_DIRS):
         return jsonify({"error": "Access denied"})
+    protected_roots = {os.path.realpath(os.path.expanduser(root)) for root in WRITABLE_DIRS}
+    if action == "delete" and os.path.realpath(abspath) in protected_roots:
+        return jsonify({"error": "Protected directory cannot be deleted"}), 403
 
     try:
         if action == "delete":
@@ -273,7 +312,7 @@ def files_operation():
             return jsonify({"success": True})
         elif action == "rename":
             abs_new = os.path.expanduser(new_path)
-            if not is_path_allowed(abs_new):
+            if not is_path_allowed(abs_new, WRITABLE_DIRS):
                 return jsonify({"error": "Access denied for target"})
             os.rename(abspath, abs_new)
             return jsonify({"success": True})
@@ -398,7 +437,7 @@ def health():
 if __name__ == "__main__":
     print("╔══════════════════════════════════════════════╗")
     print("║           B-OS Backend Server v1.0           ║")
-    print("║        http://127.0.0.1:8765                 ║")
+    print(f"║        http://127.0.0.1:{BACKEND_PORT:<21}║")
     print("╠══════════════════════════════════════════════╣")
     print("║  Endpoints:                                  ║")
     print("║  POST /api/terminal/exec  - Run commands     ║")
@@ -408,4 +447,4 @@ if __name__ == "__main__":
     print("║  POST /api/ai/chat        - AI chat          ║")
     print("║  GET  /api/health         - Server status    ║")
     print("╚══════════════════════════════════════════════╝")
-    app.run(host="127.0.0.1", port=8765, debug=False)
+    app.run(host="127.0.0.1", port=BACKEND_PORT, debug=False)
