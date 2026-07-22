@@ -7,8 +7,8 @@ echo "║        B-OS Installation                 ║"
 echo "╚══════════════════════════════════════════╝"
 echo ""
 
-# Make launch script executable
-chmod +x "$DIR/launch.sh"
+# Make launch scripts executable
+chmod +x "$DIR/launch.sh" "$DIR/start-bos.sh"
 echo "✓ Launch script ready"
 
 # Install desktop entry
