@@ -190,24 +190,45 @@ window.addEventListener('unhandledrejection', function(event) {
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════
-     API CLIENT
-     ═══════════════════════════════════════════════════ -->
-<script src="js/api.js"></script>
-<script src="js/filesystem.js"></script>
-<script src="js/event-bus.js"></script>
-<script src="js/process-manager.js"></script>
+<!-- Services -->
+<script src="services/api.js"></script>
+<script src="services/filesystem.js"></script>
 
-<!-- ═══════════════════════════════════════════════════
-     B-OS CORE
-     ═══════════════════════════════════════════════════ -->
-<script src="js/bos.js"></script>
+<!-- Shared desktop state -->
+<script src="desktop/state.js"></script>
 
-<!-- ═══════════════════════════════════════════════════
-     APPS REGISTRY (loaded after BOS is defined)
-     ═══════════════════════════════════════════════════ -->
-<script src="js/apps.js"></script>
-<script src="js/advanced-apps.js"></script>
+<!-- Kernel -->
+<script src="kernel/event-system.js"></script>
+<script src="kernel/process-manager.js"></script>
+<script src="kernel/bos.js"></script>
+<script src="kernel/window-manager.js"></script>
+
+<!-- Desktop -->
+<script src="desktop/shell.js"></script>
+<script src="services/auth.js"></script>
+<script src="desktop/app-styles.js"></script>
+
+<!-- Applications (loaded after BOS is defined) -->
+<script src="apps/terminal/app.js"></script>
+<script src="apps/files/app.js"></script>
+<script src="apps/ai-chat/app.js"></script>
+<script src="apps/browser/app.js"></script>
+<script src="apps/settings/app.js"></script>
+<script src="apps/clock/app.js"></script>
+<script src="apps/games/app.js"></script>
+<script src="apps/task-manager/app.js"></script>
+<script src="apps/calculator/app.js"></script>
+<script src="apps/notepad/app.js"></script>
+<script src="apps/quick-settings/app.js"></script>
+<script src="apps/paint/app.js"></script>
+<script src="apps/music/app.js"></script>
+<script src="apps/profile/app.js"></script>
+<script src="apps/screenshot/app.js"></script>
+<script src="apps/app-store/app.js"></script>
+<script src="apps/system-monitor/app.js"></script>
+<script src="apps/disk-usage/app.js"></script>
+<script src="apps/run/app.js"></script>
+<script src="apps/advanced/app.js"></script>
 
 </body>
 </html>
