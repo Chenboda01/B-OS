@@ -156,8 +156,9 @@
         appendOutput(outputEl, 'Exit code: ' + res.exit_code, '#ff3355');
       }
       scrollBottom(outputEl);
-    }).catch(function() {
-      appendOutput(outputEl, 'Backend offline. Start: python server/main.py', '#ff3355');
+    }).catch(function(error) {
+      appendOutput(outputEl, 'Backend offline. Built-in commands still work. Start local services with ./start-bos.sh.', '#ff3355');
+      if (error && error.message) console.warn('Terminal backend request failed:', error.message);
       scrollBottom(outputEl);
     });
   }
@@ -253,10 +254,10 @@
         '    sudo <cmd>        Run as superuser (sim)\n' +
         '    pacman <args>     Package manager\n' +
         '    compgen -c        List all commands\n' +
-        '  Backend (via server):\n' +
-        '    ls, cat, grep, mkdir, touch, mv, cp\n' +
-        '    top, htop, kill, chmod, chown, nano, vim\n' +
-        '    ... and all ' + commandCount + ' system commands\n' +
+        '  Restricted local backend:\n' +
+        '    Read-only commands such as ls, cat, grep, df, free, and ps\n' +
+        '    Shell operators, interpreters, redirects, and destructive commands are blocked\n' +
+        '    ' + commandCount + ' backend commands currently available\n' +
         '══════════════════════════════════════════════\n' +
         '  ↑/↓ History  |  Tab Autocomplete  |  Ctrl+L Clear',
         '#9999cc'
@@ -510,7 +511,7 @@
         if (systemCommands.length > 0) {
           appendOutput(outputEl, systemCommands.join('\n'), '#9999cc');
         } else {
-          sendToBackend('compgen -c | sort | uniq', outputEl);
+          appendOutput(outputEl, 'Backend offline. Command discovery is unavailable; built-in commands still work.', '#ff3355');
         }
       } else {
         sendToBackend(trimmed, outputEl);
@@ -552,12 +553,13 @@
         appendOutput(outputEl, '  Welcome, ' + username + '@' + hostname + '. Type help for commands.', '#555580');
       } else {
         var loadDiv2 = outputEl.querySelector('div:last-child');
-        if (loadDiv2) loadDiv2.textContent = 'Backend offline. Limited commands available.';
+        if (loadDiv2) loadDiv2.textContent = 'Backend offline. Built-in commands remain available. Run ./start-bos.sh to reconnect.';
       }
       scrollBottom(outputEl);
-    }).catch(function() {
+    }).catch(function(error) {
       var loadDiv3 = outputEl.querySelector('div:last-child');
-      if (loadDiv3) loadDiv3.textContent = 'Backend offline. Start: python server/main.py';
+      if (loadDiv3) loadDiv3.textContent = 'Backend offline. Built-in commands remain available. Run ./start-bos.sh to reconnect.';
+      if (error && error.message) console.warn('Unable to load terminal command list:', error.message);
       scrollBottom(outputEl);
     });
 
@@ -819,8 +821,9 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
       }
       renderFileList(fileListEl, data.entries || [], statusEl);
     }).catch(function(err) {
-      fileListEl.innerHTML = '<div style="padding:24px;text-align:center;color:#ff3355;">Connection error: ' + esc(err.message || 'Backend offline') + '</div>';
-      if (statusEl) statusEl.textContent = 'Error';
+      fileListEl.innerHTML = '<div style="padding:24px;text-align:center;color:#ff3355;line-height:1.8;">Backend Offline<br><span style="color:#9999cc;">The desktop remains usable. Run <strong>./start-bos.sh</strong>; File Manager will reconnect when refreshed.</span></div>';
+      if (statusEl) statusEl.textContent = 'Backend offline';
+      if (err && err.message) console.warn('File Manager backend unavailable:', err.message);
     });
   }
 
@@ -948,11 +951,13 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
       var fpath = currentPath === '/' ? '/' + name : currentPath + '/' + name;
       var action = confirm('File: '+name+'\n\n[OK] = Delete\n[Cancel] to skip');
       if (action) {
-        fetch(API.baseUrl + '/api/files/operation', {
-          method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({action:'delete', path:fpath})
-        }).then(function() { navigate(currentPath, win); })
-          .catch(function() { showToast('File Manager','Delete failed'); });
+        API.fileOperation('delete', fpath).then(function(result) {
+          if (result.error) throw new Error(result.error);
+          navigate(currentPath, win);
+        }).catch(function(error) {
+          console.warn('File Manager delete failed:', error);
+          showToast('File Manager', error && error.message ? error.message : 'Delete failed');
+        });
       }
     });
   }
@@ -1359,13 +1364,15 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
         target.innerHTML = '<div style="display:flex;align-items:center;gap:8px;">' +
           '<div style="width:8px;height:8px;border-radius:50%;background:#ff3355;box-shadow:0 0 8px #ff3355;"></div>' +
           '<span style="color:#ff3355;font-size:12px;">Backend Offline</span></div>' +
-          '<div style="color:#555580;font-size:11px;margin-top:4px;">Start with: python server/main.py</div>';
+          '<div style="color:#9999cc;font-size:11px;line-height:1.7;margin-top:6px;">Desktop-only apps remain available.<br>Start local services with <strong>./start-bos.sh</strong>.<br>The system tray retries automatically every 5 seconds.</div>';
       }
-    }).catch(function() {
+    }).catch(function(error) {
       var target = win.querySelector('#set-health');
       if (target) target.innerHTML = '<div style="display:flex;align-items:center;gap:8px;">' +
         '<div style="width:8px;height:8px;border-radius:50%;background:#ff3355;box-shadow:0 0 8px #ff3355;"></div>' +
-        '<span style="color:#ff3355;font-size:12px;">Backend Offline</span></div>';
+        '<span style="color:#ff3355;font-size:12px;">Backend Offline</span></div>' +
+        '<div style="color:#9999cc;font-size:11px;line-height:1.7;margin-top:6px;">Run <strong>./start-bos.sh</strong>. Desktop-only apps remain available and B-OS retries automatically.</div>';
+      if (error && error.message) console.warn('Settings health check failed:', error.message);
     });
   }
 
@@ -1927,6 +1934,7 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
   function setupEvents(win) {
     win.querySelector('#tm-proc').textContent = 'Processes: ' + Object.keys(BOS._windows).length + ' windows';
     var list = win.querySelector('#tm-list');
+    list.replaceChildren();
     Object.keys(BOS._windows).forEach(function(id) {
       var w = BOS._windows[id];
       var row = document.createElement('div');
@@ -2185,10 +2193,12 @@ if (a.type !== 'dir' && b.type === 'dir') return 1;
       '<div id="disk-info" style="color:#555;">Loading...</div></div>';
   }
   function setupEvents(win) {
-    fetch(API.baseUrl + '/api/terminal/exec',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({command:'df -h /home 2>/dev/null || echo No disk info',cwd:'~'})})
-      .then(function(r){return r.json();}).then(function(d){
-        win.querySelector('#disk-info').innerHTML = '<pre style="color:#00ff88;font-family:monospace;font-size:11px;">'+(d.stdout||'N/A')+'</pre>';
-      }).catch(function(){});
+    API.exec('df -h /home', '~').then(function(d) {
+      win.querySelector('#disk-info').innerHTML = '<pre style="color:#00ff88;font-family:monospace;font-size:11px;">'+(d.stdout||d.stderr||'No disk information available')+'</pre>';
+    }).catch(function(error) {
+      console.warn('Disk Usage backend unavailable:', error);
+      win.querySelector('#disk-info').textContent = 'Backend Offline — run ./start-bos.sh to load disk information.';
+    });
   }
   function launch() { var w = BOS.createWindow({title:'Disk Usage',icon:'💾',width:500,height:250,content:createUI()}); setupEvents(w); }
   BOS.registerApp({ id:'diskusage', name:'Disk Usage', icon:'💾', category:'system', launch:launch });
