@@ -63,5 +63,5 @@ B-OS/
 
 1. Run `./install.sh` once to create the virtual environment and desktop entry.
 2. Set QWEN API key (optional): `export QWEN_API_KEY=your_key`.
-3. Run `./launch.sh`; it starts loopback-only static and backend servers before opening app mode.
+3. Run `./start-bos.sh` (or the compatibility alias `./launch.sh`); it starts loopback-only static and backend servers, checks backend health, and opens app mode.
 4. For manual development, serve the repository on `http://127.0.0.1:8000` or `http://localhost:8000`; direct `file://` access is intentionally not allowed by backend CORS.

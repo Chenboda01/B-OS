@@ -12,7 +12,17 @@ Discription: Our own custom OS. It uses CSS, Java, and Python. It will include e
 - **Core OS:** File Manager, Terminal, Notepad text editor, Settings, AI Chat, and owner/admin login.
 - **Desktop features:** window snapping, notifications, search, Task Manager, multi-monitor detection, and per-user clipboard history.
 - **AI-native tools:** AI file-edit previews with explicit save, terminal command suggestions with confirmation, coding assistance, browser voice input/output, and multi-step planning workflows.
-- **Safety:** destructive terminal commands are blocked; AI file writes are restricted to the user's home directory and `/tmp`.
+- **Safety:** the loopback-only terminal runs a small read-only command allowlist without a shell; AI file writes are restricted to the user's home directory and `/tmp`.
+
+## Run B-OS locally
+
+Run `./install.sh` once, then start the frontend and backend together:
+
+```bash
+./start-bos.sh
+```
+
+The launcher serves the website at `http://127.0.0.1:8000`, opens the desktop at `http://127.0.0.1:8000/os/index.html`, and starts the backend at `http://127.0.0.1:8765`. Press `Ctrl+C` to stop both services. `./launch.sh` remains a compatibility alias for desktop shortcuts.
 
 
 
