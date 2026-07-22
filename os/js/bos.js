@@ -1,6 +1,40 @@
 (function() {
   'use strict';
 
+  var DESKTOP_STATE_KEY = 'bos-desktop-state';
+
+  function loadDesktopState() {
+    try {
+      var parsed = JSON.parse(localStorage.getItem(DESKTOP_STATE_KEY) || '{}');
+      return {
+        windows: parsed.windows && typeof parsed.windows === 'object' ? parsed.windows : {},
+        recentApps: Array.isArray(parsed.recentApps) ? parsed.recentApps.slice(0, 10) : [],
+        iconOrder: Array.isArray(parsed.iconOrder) ? parsed.iconOrder : [],
+        volume: Number.isFinite(parsed.volume) ? Math.max(0, Math.min(100, parsed.volume)) : 70
+      };
+    } catch (error) {
+      console.warn('Unable to load desktop state:', error);
+      return { windows: {}, recentApps: [], iconOrder: [], volume: 70 };
+    }
+  }
+
+  var desktopState = loadDesktopState();
+
+  function saveDesktopState() {
+    try {
+      localStorage.setItem(DESKTOP_STATE_KEY, JSON.stringify(desktopState));
+    } catch (error) {
+      console.warn('Unable to save desktop state:', error);
+    }
+  }
+
+  function rememberRecentApp(key, title, icon) {
+    desktopState.recentApps = desktopState.recentApps.filter(function(item) { return item.key !== key; });
+    desktopState.recentApps.unshift({ key: key, title: title, icon: icon, openedAt: Date.now() });
+    desktopState.recentApps = desktopState.recentApps.slice(0, 10);
+    saveDesktopState();
+  }
+
   /* ─────────────────────────────────────────────────
      BOS GLOBAL OBJECT
      ───────────────────────────────────────────────── */
@@ -20,13 +54,26 @@
       this._renderStartMenu();
     },
 
+    getRecentApps: function() {
+      return desktopState.recentApps.slice();
+    },
+
+    _saveWindowState: function(id) {
+      var win = this._windows[id];
+      if (!win || win.maximized) return;
+      desktopState.windows[win.stateKey] = { x: win.x, y: win.y, w: win.w, h: win.h };
+      saveDesktopState();
+    },
+
     createWindow: function(opts) {
       /* opts: { title, icon, width, height, content, onClose, x, y } */
       var id = 'win_' + (this._nextId++);
-      var w = opts.width || 700;
-      var h = opts.height || 480;
-      var x = opts.x != null ? opts.x : Math.max(40, (window.innerWidth - w) / 2 + Math.random() * 60 - 30);
-      var y = opts.y != null ? opts.y : Math.max(20, (window.innerHeight - h - 48) / 2 + Math.random() * 40 - 20);
+      var stateKey = opts.appId || opts.title || 'Untitled';
+      var savedRect = desktopState.windows[stateKey] || null;
+      var w = savedRect && Number.isFinite(savedRect.w) ? savedRect.w : (opts.width || 700);
+      var h = savedRect && Number.isFinite(savedRect.h) ? savedRect.h : (opts.height || 480);
+      var x = opts.x != null ? opts.x : (savedRect ? savedRect.x : Math.max(40, (window.innerWidth - w) / 2 + Math.random() * 60 - 30));
+      var y = opts.y != null ? opts.y : (savedRect ? savedRect.y : Math.max(20, (window.innerHeight - h - 48) / 2 + Math.random() * 40 - 20));
 
       /* Clamp within viewport */
       x = Math.max(0, Math.min(x, window.innerWidth - 100));
@@ -34,6 +81,7 @@
 
       this._windows[id] = {
         id: id,
+        stateKey: stateKey,
         title: opts.title || 'Untitled',
         icon: opts.icon || '&#9632;',
         x: x, y: y, w: w, h: h,
@@ -51,6 +99,7 @@
       this._renderDesktopIcons();
       this.focusWindow(id);
       this.closeStartMenu();
+      rememberRecentApp(stateKey, this._windows[id].title, this._windows[id].icon);
 
       return document.getElementById(id);
     },
@@ -58,6 +107,7 @@
     closeWindow: function(id) {
       var win = this._windows[id];
       if (!win) return;
+      this._saveWindowState(id);
       var el = document.getElementById(id);
       if (el) {
         el.classList.add('closing');
@@ -160,6 +210,7 @@
         el.style.borderRadius = '';
         var maxBtn = el.querySelector('.win-max');
         if (maxBtn) { maxBtn.innerHTML = '&#9723;'; maxBtn.title = 'Maximize'; }
+        this._saveWindowState(id);
       } else {
         win.prevRect = { x: win.x, y: win.y, w: win.w, h: win.h };
         win.x = 0; win.y = 0;
@@ -311,6 +362,7 @@
         if (dragging) {
           dragging = false;
           document.body.style.cursor = '';
+          self._saveWindowState(id);
         }
       };
       document.addEventListener('mousemove', dragMove);
@@ -366,6 +418,7 @@
           el.style.height = win.h + 'px';
         };
         var resizeUp = function() {
+          if (resizing) self._saveWindowState(id);
           resizing = false;
         };
         document.addEventListener('mousemove', resizeMove);
@@ -380,14 +433,47 @@
       var container = document.getElementById('desktopIcons');
       container.innerHTML = '';
       var self = this;
-      this._apps.forEach(function(app) {
+      var order = desktopState.iconOrder;
+      var orderedApps = this._apps.slice().sort(function(a, b) {
+        var ai = order.indexOf(a.id);
+        var bi = order.indexOf(b.id);
+        if (ai === -1) ai = Number.MAX_SAFE_INTEGER;
+        if (bi === -1) bi = Number.MAX_SAFE_INTEGER;
+        return ai - bi;
+      });
+      orderedApps.forEach(function(app) {
         var icon = document.createElement('div');
         icon.className = 'desktop-icon';
+        icon.draggable = true;
+        icon.dataset.appId = app.id;
         icon.innerHTML =
           '<div class="icon-glyph">' + (app.icon || '&#9632;') + '</div>' +
           '<div class="icon-label">' + self._escHtml(app.name) + '</div>';
         icon.addEventListener('click', function() {
           if (app.launch) app.launch();
+        });
+        icon.addEventListener('dragstart', function(e) {
+          e.dataTransfer.setData('text/plain', app.id);
+          e.dataTransfer.effectAllowed = 'move';
+        });
+        icon.addEventListener('dragover', function(e) {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+        });
+        icon.addEventListener('drop', function(e) {
+          e.preventDefault();
+          var sourceId = e.dataTransfer.getData('text/plain');
+          var targetId = app.id;
+          if (!sourceId || sourceId === targetId) return;
+          var ids = orderedApps.map(function(item) { return item.id; });
+          var sourceIndex = ids.indexOf(sourceId);
+          var targetIndex = ids.indexOf(targetId);
+          if (sourceIndex === -1 || targetIndex === -1) return;
+          ids.splice(sourceIndex, 1);
+          ids.splice(targetIndex, 0, sourceId);
+          desktopState.iconOrder = ids;
+          saveDesktopState();
+          self._renderDesktopIcons();
         });
         container.appendChild(icon);
       });
@@ -548,7 +634,11 @@
         document.getElementById('desktop').classList.add('visible');
         document.getElementById('taskbar').classList.add('visible');
         document.getElementById('exitButton').classList.add('visible');
-        try { initParticles(); } catch(e) {}
+        try {
+          initParticles();
+        } catch(e) {
+          console.error('Unable to initialize desktop particles:', e);
+        }
         restoreSettings();
         if (typeof API !== 'undefined' && API.health) {
           API.health().then(function(r) {
@@ -807,22 +897,32 @@
   var backendDot = document.getElementById('backendDot');
   var backendLabel = document.getElementById('backendLabel');
   var backendTooltip = document.getElementById('backendTooltip');
+  var previousBackendOnline = null;
+
+  function updateBackendState(online, detail) {
+    backendDot.classList.toggle('online', online);
+    backendLabel.textContent = online ? 'online' : 'offline';
+    backendTooltip.textContent = online
+      ? 'Backend: Connected'
+      : 'Backend: Offline — desktop remains available. Run ./start-bos.sh; reconnecting automatically.';
+    window.dispatchEvent(new CustomEvent('bos-backend-status', {
+      detail: { online: online, message: detail || '' }
+    }));
+    if (previousBackendOnline !== null && previousBackendOnline !== online && typeof window.showToast === 'function') {
+      window.showToast(
+        online ? 'Backend Connected' : 'Backend Offline',
+        online ? 'Local services are available again.' : 'Desktop apps remain available. Run ./start-bos.sh to restore local services.'
+      );
+    }
+    previousBackendOnline = online;
+  }
 
   function pollBackend() {
     BOS.getBackendStatus().then(function(res) {
-      if (res && res.status === 'ok') {
-        backendDot.classList.add('online');
-        backendLabel.textContent = 'online';
-        backendTooltip.textContent = 'Backend: Connected';
-      } else {
-        backendDot.classList.remove('online');
-        backendLabel.textContent = 'offline';
-        backendTooltip.textContent = 'Backend: Offline';
-      }
-    }).catch(function() {
-      backendDot.classList.remove('online');
-      backendLabel.textContent = 'offline';
-      backendTooltip.textContent = 'Backend: Unreachable';
+      updateBackendState(Boolean(res && res.status === 'ok'), res && res.error);
+    }).catch(function(error) {
+      console.warn('Backend status check failed:', error);
+      updateBackendState(false, error && error.message);
     }).finally(function() {
       setTimeout(pollBackend, 5000);
     });
@@ -952,7 +1052,9 @@
             weatherTemp.textContent = Math.round(data.current_weather.temperature) + '°F';
         }
       })
-      .catch(function() {});
+      .catch(function(error) {
+        console.info('Weather service unavailable:', error && error.message ? error.message : error);
+      });
   }
 
   /* ─────────────────────────────────────────────────
@@ -1273,13 +1375,22 @@
      VOLUME CONTROL
      ───────────────────────────────────────────────── */
   var volRange = document.getElementById('volRange');
+  volRange.value = String(desktopState.volume);
+  updateVolumeIcon(desktopState.volume);
+
+  function updateVolumeIcon(value) {
+    var icon = document.getElementById('volIcon');
+    if (value === 0) icon.textContent = '🔇';
+    else if (value < 33) icon.textContent = '🔈';
+    else if (value < 66) icon.textContent = '🔉';
+    else icon.textContent = '🔊';
+  }
+
   volRange.addEventListener('input', function() {
     var v = parseInt(this.value);
-    var icon = document.getElementById('volIcon');
-    if (v === 0) icon.textContent = '🔇';
-    else if (v < 33) icon.textContent = '🔈';
-    else if (v < 66) icon.textContent = '🔉';
-    else icon.textContent = '🔊';
+    desktopState.volume = v;
+    saveDesktopState();
+    updateVolumeIcon(v);
   });
 
   /* ─────────────────────────────────────────────────
