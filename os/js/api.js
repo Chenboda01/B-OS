@@ -1,78 +1,105 @@
 // B-OS API Client — matches the backend's loopback-only bind address.
 const API_BASE = 'http://127.0.0.1:8765';
+const API_TIMEOUT_MS = 5000;
 
 const API = {
   baseUrl: API_BASE,
+  online: false,
+
+  async request(path, options = {}) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+    try {
+      const response = await fetch(`${API_BASE}${path}`, { ...options, signal: controller.signal });
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        throw new Error(`Backend returned HTTP ${response.status}`);
+      }
+      const data = await response.json();
+      if (!response.ok && !data.error && !data.stderr) {
+        throw new Error(`Backend returned HTTP ${response.status}`);
+      }
+      this.online = true;
+      return data;
+    } catch (error) {
+      this.online = false;
+      if (error && error.name === 'AbortError') {
+        throw new Error('Backend request timed out. Start B-OS with ./start-bos.sh.');
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+    }
+  },
 
   async exec(cmd, cwd) {
-    const r = await fetch(`${API_BASE}/api/terminal/exec`, {
+    return this.request('/api/terminal/exec', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ command: cmd, cwd: cwd || '~' })
     });
-    return r.json(); // { stdout, stderr, exit_code }
   },
 
   async listFiles(path = '/home') {
-    const r = await fetch(`${API_BASE}/api/files/list?path=${encodeURIComponent(path)}`);
-    return r.json(); // { path, entries: [{name, type, size, modified}] }
+    return this.request(`/api/files/list?path=${encodeURIComponent(path)}`);
   },
 
   async readFile(path) {
-    const r = await fetch(`${API_BASE}/api/files/read`, {
+    return this.request('/api/files/read', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ path })
     });
-    return r.json(); // { content, error }
   },
 
   async writeFile(path, content) {
-    const r = await fetch(`${API_BASE}/api/files/write`, {
+    return this.request('/api/files/write', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ path, content })
     });
-    const type = r.headers.get('content-type') || '';
-    if (!type.includes('application/json')) {
-      return { success: false, error: `Backend returned HTTP ${r.status}` };
-    }
-    return r.json(); // { success, path, error }
+  },
+
+  async fileOperation(action, path, newPath = '') {
+    return this.request('/api/files/operation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, path, newPath })
+    });
   },
 
   async chat(message, history = [], mode = 'chat') {
-    const r = await fetch(`${API_BASE}/api/ai/chat`, {
+    return this.request('/api/ai/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message, history, mode })
     });
-    return r.json(); // { reply, error }
   },
 
   async health() {
     try {
-      const r = await fetch(`${API_BASE}/api/health`);
-      return r.json();
-    } catch {
-      return { status: 'offline' };
+      const data = await this.request('/api/health');
+      this.online = data.status === 'ok';
+      return data;
+    } catch (error) {
+      this.online = false;
+      return { status: 'offline', error: error && error.message ? error.message : 'Backend unavailable' };
     }
   },
 
   async fetchCommands() {
     try {
-      const r = await fetch(`${API_BASE}/api/terminal/commands`);
-      return r.json();
-    } catch {
-      return { count: 0, commands: [] };
+      return await this.request('/api/terminal/commands');
+    } catch (error) {
+      return { count: 0, commands: [], error: error && error.message ? error.message : 'Backend unavailable' };
     }
   },
 
   async whichCmd(cmd) {
     try {
-      const r = await fetch(`${API_BASE}/api/terminal/which?cmd=${encodeURIComponent(cmd)}`);
-      return r.json();
-    } catch {
-      return { path: '', exists: false, error: 'Backend offline' };
+      return await this.request(`/api/terminal/which?cmd=${encodeURIComponent(cmd)}`);
+    } catch (error) {
+      return { path: '', exists: false, error: error && error.message ? error.message : 'Backend offline' };
     }
   }
 };

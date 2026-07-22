@@ -11,6 +11,15 @@
 <link rel="manifest" href="manifest.json">
 <title>B-OS — Cyberpunk Desktop</title>
 <link rel="stylesheet" href="css/os.css">
+<script>
+window.addEventListener('error', function(event) {
+  console.error('B-OS error:', event.error || event.message);
+});
+
+window.addEventListener('unhandledrejection', function(event) {
+  console.error('B-OS promise error:', event.reason);
+});
+</script>
 </head>
 <body>
 
